@@ -21,99 +21,61 @@ MERCHANT_CATEGORIES = [
     "grocery", "retail", "travel", "electronics", "entertainment",
     "gaming", "crypto_exchange", "utilities", "dining", "luxury"
 ]
-HIGH_RISK_MERCHANTS = {"crypto_exchange", "luxury", "gaming"}
+HIGH_RISK_MERCHANTS = ["crypto_exchange", "luxury", "gaming", "electronics"]
 
 
-def generate_transactions(num_records=12000, drift_mode=False):
-    """
-    Generate synthetic transactions.
-    If drift_mode=True, simulates data and concept drift:
-    - Shift to higher transaction amounts
-    - Higher ratio of foreign transactions and midnight hours
-    - Drift in channel preference (surge in crypto and new wallets)
-    """
+def generate_transactions(num_records=15000, drift_mode=False):
     start_time = datetime(2026, 9, 1, 0, 0, 0)
     records = []
 
     user_ids = [f"USR_{i:04d}" for i in range(1, 1500)]
-    user_historical_avg = {u: np.random.lognormal(mean=3.5, sigma=0.6) for u in user_ids}
+    user_historical_avg = {u: float(np.random.lognormal(mean=3.8, sigma=0.5)) for u in user_ids}
+
+    # Baseline fraud rate 1.5%, Drifted fraud rate 12%
+    fraud_prob = 0.12 if drift_mode else 0.015
 
     for i in range(num_records):
         tx_id = f"TXN_{200000 + i if drift_mode else 100000 + i}"
         user_id = random.choice(user_ids)
         base_avg = user_historical_avg[user_id]
 
-        if not drift_mode:
-            # Baseline normal distribution
+        is_fraud_tx = 1 if np.random.rand() < fraud_prob else 0
+
+        if is_fraud_tx == 1:
+            # Fraudulent attack signature
+            amount = np.random.lognormal(mean=np.log(base_avg * 4.2), sigma=0.5)
+            hour = int(np.random.choice([0, 1, 2, 3, 4, 22, 23]))
+            channel = np.random.choice(["CREDIT_CARD", "UPI", "WALLET"], p=[0.50, 0.35, 0.15])
+            merchant = np.random.choice(HIGH_RISK_MERCHANTS)
+            is_foreign = 1 if np.random.rand() < 0.65 else 0
+            device_trust = float(np.clip(np.random.beta(2, 8), 0.02, 0.35)) # Low device trust
+            location_risk = float(np.clip(np.random.beta(7, 3), 0.60, 0.99)) # High location risk
+            velocity_1h = int(np.random.poisson(lam=3.5) + 1)
+            velocity_24h = int(velocity_1h + np.random.poisson(lam=4.0))
+        else:
+            # Normal authentic customer transaction
+            amount = np.random.lognormal(mean=np.log(base_avg), sigma=0.45)
             p_hour = np.array([
-                0.01, 0.01, 0.01, 0.01, 0.02, 0.03, # 0-5 AM
-                0.04, 0.06, 0.08, 0.08, 0.07, 0.07, # 6-11 AM
-                0.08, 0.07, 0.06, 0.06, 0.07, 0.08, # 12-17 PM
-                0.08, 0.06, 0.03, 0.01, 0.01, 0.01  # 18-23 PM
+                0.01, 0.01, 0.01, 0.01, 0.02, 0.03,
+                0.05, 0.07, 0.08, 0.08, 0.07, 0.07,
+                0.08, 0.07, 0.06, 0.06, 0.07, 0.08,
+                0.07, 0.05, 0.03, 0.02, 0.01, 0.01
             ])
             p_hour = p_hour / p_hour.sum()
-            hour = np.random.choice(range(24), p=p_hour)
+            hour = int(np.random.choice(range(24), p=p_hour))
             channel = np.random.choice(CHANNELS, p=CHANNEL_WEIGHTS)
             merchant = np.random.choice(MERCHANT_CATEGORIES)
-            is_foreign = 1 if np.random.rand() < 0.03 else 0
-            device_trust = np.clip(np.random.beta(8, 2), 0.0, 1.0)
-            location_risk = np.clip(np.random.beta(2, 8), 0.0, 1.0)
-            amount = np.random.lognormal(mean=np.log(base_avg), sigma=0.5)
-            velocity_1h = np.random.poisson(lam=0.4)
-            velocity_24h = velocity_1h + np.random.poisson(lam=2.0)
-        else:
-            # DRIFTED DISTRIBUTION: Sudden spike in midnight attacks & international crypto
-            p_hour = np.array([
-                0.08, 0.08, 0.08, 0.06, 0.04, 0.03, # High midnight spike
-                0.03, 0.03, 0.04, 0.04, 0.04, 0.04,
-                0.04, 0.04, 0.04, 0.05, 0.05, 0.05,
-                0.06, 0.06, 0.05, 0.04, 0.03, 0.04
-            ])
-            p_hour = p_hour / p_hour.sum()
-            hour = np.random.choice(range(24), p=p_hour)
-            p_chan = np.array([0.20, 0.40, 0.10, 0.10, 0.20])
-            p_chan = p_chan / p_chan.sum()
-            channel = np.random.choice(CHANNELS, p=p_chan)
-            p_merch = np.array([0.05, 0.05, 0.10, 0.15, 0.05, 0.20, 0.25, 0.05, 0.05, 0.05])
-            p_merch = p_merch / p_merch.sum()
-            merchant = np.random.choice(MERCHANT_CATEGORIES, p=p_merch)
-            is_foreign = 1 if np.random.rand() < 0.18 else 0 # 6x spike in foreign
-            device_trust = np.clip(np.random.beta(4, 5), 0.0, 1.0) # Lower trust
-            location_risk = np.clip(np.random.beta(5, 5), 0.0, 1.0) # Higher location risk
-            amount = np.random.lognormal(mean=np.log(base_avg * 2.8), sigma=0.8) # 2.8x higher amounts
-            velocity_1h = np.random.poisson(lam=1.8)
-            velocity_24h = velocity_1h + np.random.poisson(lam=5.5)
+            is_foreign = 1 if np.random.rand() < 0.02 else 0
+            device_trust = float(np.clip(np.random.beta(8, 2), 0.65, 0.99)) # High device trust
+            location_risk = float(np.clip(np.random.beta(2, 8), 0.01, 0.40)) # Low location risk
+            velocity_1h = int(np.random.poisson(lam=0.3))
+            velocity_24h = int(velocity_1h + np.random.poisson(lam=1.5))
 
         amount = round(float(amount), 2)
-        old_balance = round(float(np.random.uniform(500, 25000)), 2)
+        old_balance = round(float(np.random.uniform(500, 30000)), 2)
         new_balance = max(0.0, round(old_balance - amount, 2))
         amount_to_avg_ratio = round(amount / (base_avg + 1e-5), 3)
         balance_diff = round(old_balance - new_balance, 2)
-
-        # Ground truth fraud generation based on realistic risk rules + stochastic noise
-        fraud_score = 0.0
-        if amount_to_avg_ratio > 4.5:
-            fraud_score += 0.35
-        if hour in [1, 2, 3, 4]:
-            fraud_score += 0.25
-        if merchant in HIGH_RISK_MERCHANTS:
-            fraud_score += 0.20
-        if is_foreign == 1:
-            fraud_score += 0.25
-        if device_trust < 0.35:
-            fraud_score += 0.30
-        if velocity_1h >= 3:
-            fraud_score += 0.30
-        if location_risk > 0.70:
-            fraud_score += 0.20
-
-        # Normal transaction fraud probability
-        if not drift_mode:
-            # Imbalance rate ~ 1.0%
-            is_fraud = 1 if (fraud_score >= 0.75 and np.random.rand() < 0.65) or (np.random.rand() < 0.003) else 0
-        else:
-            # Drifted fraud rate ~ 4.5%
-            is_fraud = 1 if (fraud_score >= 0.55 and np.random.rand() < 0.80) or (np.random.rand() < 0.015) else 0
 
         tx_time = start_time + timedelta(
             days=random.randint(0, 30),
@@ -142,7 +104,7 @@ def generate_transactions(num_records=12000, drift_mode=False):
             "location_risk_score": round(float(location_risk), 3),
             "hour_of_day": int(hour),
             "is_weekend": int(is_weekend),
-            "is_fraud": int(is_fraud)
+            "is_fraud": int(is_fraud_tx)
         })
 
     df = pd.DataFrame(records)

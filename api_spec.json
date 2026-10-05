@@ -1,0 +1,800 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PayGuard Fraud Detection API",
+    "description": "Real-Time Digital Payment Fraud Detection REST Service with Sub-30ms Inference, SHAP Explainability, and Prometheus Metrics.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "General"
+        ],
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Observability"
+        ],
+        "summary": "Health Check",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predict": {
+      "post": {
+        "tags": [
+          "Inference"
+        ],
+        "summary": "Predict Transaction",
+        "operationId": "predict_transaction_predict_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predict/batch": {
+      "post": {
+        "tags": [
+          "Inference"
+        ],
+        "summary": "Predict Batch Transactions",
+        "operationId": "predict_batch_transactions_predict_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchTransactionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchPredictionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/explain": {
+      "post": {
+        "tags": [
+          "Explainability"
+        ],
+        "summary": "Explain Transaction",
+        "operationId": "explain_transaction_explain_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExplanationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feedback": {
+      "post": {
+        "tags": [
+          "Monitoring"
+        ],
+        "summary": "Submit Delayed Feedback",
+        "description": "Simulates delayed ground truth labels arriving after bank fraud settlement.\nCompares actual vs predicted to record True Positives and False Positives in Prometheus.",
+        "operationId": "submit_delayed_feedback_feedback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drift/simulate": {
+      "post": {
+        "tags": [
+          "Monitoring"
+        ],
+        "summary": "Simulate Drift",
+        "description": "Simulates production drift by reading drifted dataset and comparing against baseline reference.\nComputes KS-test and PSI metrics, updating Prometheus gauges.",
+        "operationId": "simulate_drift_drift_simulate_post",
+        "parameters": [
+          {
+            "name": "sample_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "title": "Sample Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftSimulationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": [
+          "Observability"
+        ],
+        "summary": "Prometheus Metrics",
+        "operationId": "prometheus_metrics_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BatchPredictionResponse": {
+        "properties": {
+          "total_processed": {
+            "type": "integer",
+            "title": "Total Processed"
+          },
+          "total_flagged_fraud": {
+            "type": "integer",
+            "title": "Total Flagged Fraud"
+          },
+          "fraud_rate_pct": {
+            "type": "number",
+            "title": "Fraud Rate Pct"
+          },
+          "average_latency_ms": {
+            "type": "number",
+            "title": "Average Latency Ms"
+          },
+          "predictions": {
+            "items": {
+              "$ref": "#/components/schemas/PredictionResponse"
+            },
+            "type": "array",
+            "title": "Predictions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_processed",
+          "total_flagged_fraud",
+          "fraud_rate_pct",
+          "average_latency_ms",
+          "predictions"
+        ],
+        "title": "BatchPredictionResponse"
+      },
+      "BatchTransactionInput": {
+        "properties": {
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionInput"
+            },
+            "type": "array",
+            "title": "Transactions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transactions"
+        ],
+        "title": "BatchTransactionInput"
+      },
+      "DriftSimulationResponse": {
+        "properties": {
+          "overall_dataset_drift": {
+            "type": "boolean",
+            "title": "Overall Dataset Drift"
+          },
+          "drifted_features_count": {
+            "type": "integer",
+            "title": "Drifted Features Count"
+          },
+          "drifted_features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Drifted Features"
+          },
+          "sample_records_analyzed": {
+            "type": "integer",
+            "title": "Sample Records Analyzed"
+          },
+          "feature_metrics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Feature Metrics"
+          },
+          "action_required": {
+            "type": "string",
+            "title": "Action Required"
+          }
+        },
+        "type": "object",
+        "required": [
+          "overall_dataset_drift",
+          "drifted_features_count",
+          "drifted_features",
+          "sample_records_analyzed",
+          "feature_metrics",
+          "action_required"
+        ],
+        "title": "DriftSimulationResponse"
+      },
+      "ExplanationResponse": {
+        "properties": {
+          "transaction_id": {
+            "type": "string",
+            "title": "Transaction Id"
+          },
+          "fraud_probability": {
+            "type": "number",
+            "title": "Fraud Probability"
+          },
+          "is_fraud": {
+            "type": "boolean",
+            "title": "Is Fraud"
+          },
+          "top_risk_factors": {
+            "items": {
+              "$ref": "#/components/schemas/FeatureAttribution"
+            },
+            "type": "array",
+            "title": "Top Risk Factors"
+          },
+          "plain_language_summary": {
+            "type": "string",
+            "title": "Plain Language Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transaction_id",
+          "fraud_probability",
+          "is_fraud",
+          "top_risk_factors",
+          "plain_language_summary"
+        ],
+        "title": "ExplanationResponse"
+      },
+      "FeatureAttribution": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "feature_value": {
+            "title": "Feature Value"
+          },
+          "shap_value": {
+            "type": "number",
+            "title": "Shap Value"
+          },
+          "impact": {
+            "type": "string",
+            "title": "Impact"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "feature_value",
+          "shap_value",
+          "impact"
+        ],
+        "title": "FeatureAttribution"
+      },
+      "FeedbackInput": {
+        "properties": {
+          "transaction_id": {
+            "type": "string",
+            "title": "Transaction Id"
+          },
+          "actual_is_fraud": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Actual Is Fraud"
+          },
+          "feedback_timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback Timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transaction_id",
+          "actual_is_fraud"
+        ],
+        "title": "FeedbackInput"
+      },
+      "FeedbackResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "recorded_records_count": {
+            "type": "integer",
+            "title": "Recorded Records Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "message",
+          "recorded_records_count"
+        ],
+        "title": "FeedbackResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "model_loaded": {
+            "type": "boolean",
+            "title": "Model Loaded"
+          },
+          "champion_model_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Champion Model Name"
+          },
+          "champion_model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Champion Model Version"
+          },
+          "uptime_seconds": {
+            "type": "number",
+            "title": "Uptime Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "service",
+          "version",
+          "model_loaded",
+          "uptime_seconds"
+        ],
+        "title": "HealthResponse"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "transaction_id": {
+            "type": "string",
+            "title": "Transaction Id"
+          },
+          "is_fraud": {
+            "type": "boolean",
+            "title": "Is Fraud"
+          },
+          "fraud_probability": {
+            "type": "number",
+            "title": "Fraud Probability"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level"
+          },
+          "recommendation": {
+            "type": "string",
+            "title": "Recommendation"
+          },
+          "decision_threshold": {
+            "type": "number",
+            "title": "Decision Threshold"
+          },
+          "latency_ms": {
+            "type": "number",
+            "title": "Latency Ms"
+          },
+          "model_name": {
+            "type": "string",
+            "title": "Model Name"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transaction_id",
+          "is_fraud",
+          "fraud_probability",
+          "risk_level",
+          "recommendation",
+          "decision_threshold",
+          "latency_ms",
+          "model_name",
+          "model_version",
+          "timestamp"
+        ],
+        "title": "PredictionResponse"
+      },
+      "TransactionInput": {
+        "properties": {
+          "transaction_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transaction Id",
+            "example": "TXN_987654"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp",
+            "example": "2026-10-05 14:30:00"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "example": "USR_0412"
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount",
+            "description": "Transaction amount in currency units",
+            "example": 450.0
+          },
+          "old_balance": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Old Balance",
+            "description": "Account balance before transaction",
+            "example": 2500.0
+          },
+          "new_balance": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "New Balance",
+            "description": "Account balance after transaction",
+            "example": 2050.0
+          },
+          "user_avg_amount_30d": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "User Avg Amount 30D",
+            "description": "Historical 30-day average transaction amount",
+            "example": 75.0
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel",
+            "description": "Payment channel: UPI, CREDIT_CARD, DEBIT_CARD, NET_BANKING, WALLET",
+            "example": "UPI"
+          },
+          "merchant_category": {
+            "type": "string",
+            "title": "Merchant Category",
+            "description": "Merchant category code or tag",
+            "example": "electronics"
+          },
+          "is_foreign_transaction": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Is Foreign Transaction",
+            "description": "1 if international transaction, 0 if domestic",
+            "default": 0,
+            "example": 0
+          },
+          "device_trust_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Device Trust Score",
+            "description": "Device behavioral trust score between 0.0 and 1.0",
+            "example": 0.88
+          },
+          "location_risk_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Location Risk Score",
+            "description": "Geographic IP risk score between 0.0 and 1.0",
+            "example": 0.15
+          },
+          "velocity_1h": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Velocity 1H",
+            "description": "Transactions completed by user in last 1 hour",
+            "default": 1,
+            "example": 2
+          },
+          "velocity_24h": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Velocity 24H",
+            "description": "Transactions completed by user in last 24 hours",
+            "default": 2,
+            "example": 4
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "amount",
+          "old_balance",
+          "new_balance",
+          "user_avg_amount_30d",
+          "channel",
+          "merchant_category",
+          "device_trust_score",
+          "location_risk_score"
+        ],
+        "title": "TransactionInput"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

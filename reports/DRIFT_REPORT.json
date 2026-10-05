@@ -1,0 +1,55 @@
+{
+  "overall_dataset_drift": true,
+  "drifted_features_count": 5,
+  "drifted_features": [
+    "amount",
+    "amount_to_avg_ratio",
+    "velocity_1h",
+    "device_trust_score",
+    "location_risk_score"
+  ],
+  "feature_metrics": {
+    "amount": {
+      "ks_statistic": 0.0643,
+      "ks_pvalue": 3.466285299121175e-07,
+      "psi": 0.0367,
+      "drift_detected": true
+    },
+    "old_balance": {
+      "ks_statistic": 0.022,
+      "ks_pvalue": 0.32007423371509786,
+      "psi": 0.0032,
+      "drift_detected": false
+    },
+    "new_balance": {
+      "ks_statistic": 0.0238,
+      "ks_pvalue": 0.2352903420198045,
+      "psi": 0.0031,
+      "drift_detected": false
+    },
+    "amount_to_avg_ratio": {
+      "ks_statistic": 0.0911,
+      "ks_pvalue": 5.669654316757694e-14,
+      "psi": 0.0644,
+      "drift_detected": true
+    },
+    "velocity_1h": {
+      "ks_statistic": 0.0931,
+      "ks_pvalue": 1.4177829549307057e-14,
+      "psi": 0.023,
+      "drift_detected": true
+    },
+    "device_trust_score": {
+      "ks_statistic": 0.1043,
+      "ks_pvalue": 3.4488099539166497e-18,
+      "psi": 0.2278,
+      "drift_detected": true
+    },
+    "location_risk_score": {
+      "ks_statistic": 0.1043,
+      "ks_pvalue": 3.4488099539166497e-18,
+      "psi": 0.074,
+      "drift_detected": true
+    }
+  }
+}

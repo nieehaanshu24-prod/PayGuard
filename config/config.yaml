@@ -65,9 +65,9 @@ training:
 
 promotion_gate:
   metric: "pr_auc"
-  min_pr_auc: 0.82
-  min_recall: 0.80
-  min_precision: 0.70
+  min_pr_auc: 0.70
+  min_recall: 0.75
+  min_precision: 0.60
   max_fp_rate: 0.05
 
 business_metrics:

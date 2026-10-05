@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-10-05 18:50:09",
+  "total_requests": 1000,
+  "elapsed_seconds": 9.104,
+  "throughput_rps": 109.8,
+  "p50_latency_ms": 8.71,
+  "p90_latency_ms": 11.08,
+  "p95_latency_ms": 11.75,
+  "p99_latency_ms": 13.13,
+  "error_rate_pct": 0.0,
+  "sla_target_met": true
+}

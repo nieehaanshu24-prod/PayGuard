@@ -1,0 +1,82 @@
+name: PayGuard MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  unit-and-integration-tests:
+    name: Unit & API Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate Datasets & Run Training Pipeline
+        run: |
+          python scripts/generate_dataset.py
+          python scripts/run_pipeline.py
+
+      - name: Run Unit Tests for Preprocessing
+        run: |
+          pytest tests/test_preprocessing.py -v
+
+      - name: Run API Integration Tests
+        run: |
+          pytest tests/test_api.py -v
+
+      - name: Enforce Model-Quality Threshold Before Promotion
+        run: |
+          pytest tests/test_model_quality.py -v
+
+      - name: Run Real-Time Sub-30ms Latency Benchmark
+        run: |
+          python scripts/benchmark_latency.py
+
+      - name: Run Data Drift Simulation
+        run: |
+          python scripts/simulate_drift.py
+
+  docker-build-and-test:
+    name: Docker Build & Container Health Test
+    needs: unit-and-integration-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11 (for pipeline artifacts)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Prepare Model Artifacts for Container Build
+        run: |
+          pip install -r requirements.txt
+          python scripts/generate_dataset.py
+          python scripts/run_pipeline.py
+
+      - name: Build PayGuard Docker Image
+        run: |
+          docker build -t payguard-api:test -f docker/Dockerfile .
+
+      - name: Run Container & Verify Health Endpoint
+        run: |
+          docker run -d -p 8000:8000 --name payguard-container payguard-api:test
+          sleep 5
+          curl --fail --retry 5 --retry-delay 3 http://localhost:8000/health
+          docker logs payguard-container
+          docker stop payguard-container
