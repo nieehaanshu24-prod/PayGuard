@@ -1,0 +1,5 @@
+outs:
+- md5: 378fa3b8f583adcf88cb1288462064a3
+  size: 1854818
+  hash: md5
+  path: transactions_v1.csv

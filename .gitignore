@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# DVC local storage
+.dvc/cache/
+.dvc/tmp/
+
+# Data files tracked by DVC
+/data/raw/*.csv
+/data/processed/*.csv
+/data/reference/*.csv
+/models/*.joblib
+/models/*.json
+
+# Environments & OS
+.env
+.DS_Store
+Thumbs.db
+*.swp
+*.bak

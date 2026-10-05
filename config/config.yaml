@@ -1,0 +1,86 @@
+project:
+  name: "PayGuard"
+  version: "1.0.0"
+  random_seed: 42
+
+paths:
+  raw_data_v1: "data/raw/transactions_v1.csv"
+  raw_data_v2_drifted: "data/raw/transactions_v2_drifted.csv"
+  processed_train: "data/processed/train.csv"
+  processed_test: "data/processed/test.csv"
+  reference_data: "data/reference/baseline_reference.csv"
+  model_dir: "models"
+  champion_model_path: "models/champion_model.joblib"
+  preprocessor_path: "models/preprocessor.joblib"
+  reports_dir: "reports"
+  mlflow_tracking_uri: "sqlite:///mlruns.db"
+  mlflow_experiment_name: "PayGuard_Fraud_Detection"
+
+data:
+  target_column: "is_fraud"
+  id_column: "transaction_id"
+  timestamp_column: "timestamp"
+  user_id_column: "user_id"
+  numerical_features:
+    - "amount"
+    - "old_balance"
+    - "new_balance"
+    - "user_avg_amount_30d"
+    - "amount_to_avg_ratio"
+    - "balance_diff"
+    - "velocity_1h"
+    - "velocity_24h"
+    - "device_trust_score"
+    - "location_risk_score"
+    - "hour_of_day"
+    - "is_weekend"
+  categorical_features:
+    - "channel"
+    - "merchant_category"
+    - "is_foreign_transaction"
+
+training:
+  test_size: 0.20
+  val_size: 0.15
+  cv_folds: 5
+  baseline:
+    name: "LogisticRegression_Baseline"
+    class_weight: "balanced"
+    max_iter: 1000
+    C: 1.0
+  candidate_1:
+    name: "RandomForest_Candidate"
+    n_estimators: 150
+    max_depth: 12
+    min_samples_split: 5
+    class_weight: "balanced_subsample"
+  candidate_2:
+    name: "XGBoost_Candidate"
+    n_estimators: 200
+    max_depth: 6
+    learning_rate: 0.05
+    scale_pos_weight: 15.0
+    subsample: 0.8
+    colsample_bytree: 0.8
+
+promotion_gate:
+  metric: "pr_auc"
+  min_pr_auc: 0.82
+  min_recall: 0.80
+  min_precision: 0.70
+  max_fp_rate: 0.05
+
+business_metrics:
+  investigation_cost_per_flag: 25.0 # Friction / analyst manual review cost in USD
+  default_fraud_loss_if_uncaught: 500.0 # Average loss on missed fraud in USD
+
+monitoring:
+  p95_latency_threshold_ms: 30.0
+  throughput_min_rps: 50.0
+  drift_psi_threshold: 0.20
+  drift_ks_pvalue_alpha: 0.05
+
+cloud:
+  aws_region: "us-east-1"
+  s3_bucket: "payguard-mlops-artifacts"
+  sagemaker_endpoint_name: "payguard-fraud-detector"
