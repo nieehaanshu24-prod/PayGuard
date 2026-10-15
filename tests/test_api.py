@@ -164,3 +164,49 @@ def test_ui_root_serving():
     response = client.get("/")
     assert response.status_code == 200
 
+
+def test_model_metadata_endpoint():
+    response = client.get("/model/metadata")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["model_name"] == "RandomForest_Candidate"
+    assert "metrics" in data
+    assert "confusion_matrix" in data
+    assert "financial_impact" in data
+    assert data["financial_impact"]["net_dollar_savings_usd"] == 23000.0
+
+
+def test_model_feature_importance_endpoint():
+    response = client.get("/model/feature-importance")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert "rank" in data[0]
+    assert "name" in data[0]
+    assert "importance" in data[0]
+    assert data[0]["rank"] == 1
+
+
+def test_sample_transactions_endpoint():
+    response = client.get("/transactions/sample?n=5")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 5
+    assert "id" in data[0]
+    assert "verdict" in data[0]
+    assert "fraud_probability" in data[0]
+    assert "shap_values" in data[0]
+
+
+def test_stream_next_endpoint():
+    response = client.get("/transactions/stream-next")
+    assert response.status_code == 200
+    data = response.json()
+    assert "id" in data
+    assert data["id"].startswith("TXN_")
+    assert "verdict" in data
+    assert "fraud_probability" in data
+
+

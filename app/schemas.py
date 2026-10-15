@@ -136,3 +136,27 @@ class DriftSimulationResponse(BaseModel):
     features_monitored: Optional[int] = 7
     timestamp: Optional[str] = None
     details: Optional[List[Dict[str, Any]]] = None
+
+
+class FeatureImportanceItem(BaseModel):
+    rank: int
+    name: str
+    feature_name: str
+    importance: float
+    importance_pct: float
+    mean_shap: float
+    description: str
+
+
+class ModelMetadataResponse(BaseModel):
+    model_name: str
+    model_version: str
+    run_id: str
+    alias: str
+    optimal_threshold: float
+    registered_at: str
+    metrics: Dict[str, Any]
+    confusion_matrix: Dict[str, Any]
+    financial_impact: Dict[str, Any]
+    benchmarks: Dict[str, Any]
+

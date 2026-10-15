@@ -26,6 +26,7 @@ COPY data/reference/ ./data/reference/
 COPY data/raw/ ./data/raw/
 COPY payguard-transaction-risk-assessment-UI/ ./payguard-transaction-risk-assessment-UI/
 COPY payguard-transaction-risk-assessment-v2/ ./payguard-transaction-risk-assessment-v2/
+COPY reports/ ./reports/
 
 # Create non-root user for security best practice
 RUN useradd -m -u 1000 payguard && chown -R payguard:payguard /workspace

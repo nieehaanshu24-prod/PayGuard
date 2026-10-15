@@ -252,6 +252,12 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   useEffect(() => {
     checkHealth();
+    apiClient.getSampleTransactions(20).then(samples => {
+      if (samples && samples.length > 0) {
+        setTransactions(samples);
+        setSelectedTransaction(samples[0]);
+      }
+    });
     const interval = setInterval(checkHealth, 15000);
     return () => clearInterval(interval);
   }, [checkHealth]);
@@ -375,28 +381,33 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const intervalMs = Math.max(200, Math.floor(1000 / streamingTps));
 
     streamTimerRef.current = setInterval(async () => {
-      const payload = generateSimulatedTransaction();
-      const predictRes = await apiClient.predict(payload);
+      let record: TransactionRecord | null = await apiClient.getStreamNextTransaction();
 
-      const record: TransactionRecord = {
-        ...payload,
-        id: predictRes.transaction_id || `TXN_${Date.now().toString().slice(-6)}`,
-        timestamp: new Date().toISOString(),
-        fraud_probability: predictRes.fraud_probability,
-        risk_level: (predictRes.risk_level as RiskLevel) || (predictRes.fraud_probability >= 0.74 ? 'HIGH' : predictRes.fraud_probability >= 0.45 ? 'MEDIUM' : 'LOW'),
-        verdict: (predictRes.verdict as Verdict) || (predictRes.fraud_probability >= 0.74 ? 'BLOCKED' : predictRes.fraud_probability >= 0.45 ? 'REVIEW' : 'APPROVED'),
-        recommendation: (predictRes.recommendation as any) || (predictRes.fraud_probability >= 0.74 ? 'BLOCK_TRANSACTION' : predictRes.fraud_probability >= 0.45 ? 'STEP_UP_AUTHENTICATION' : 'ALLOW_TRANSACTION'),
-        decision_threshold: predictRes.decision_threshold ?? 0.74,
-        inference_latency_ms: predictRes.inference_latency_ms ?? 11.2,
-        model_version: predictRes.model_version || 'RandomForest_Candidate @champion',
-        is_simulated: true
-      };
+      if (!record) {
+        const payload = generateSimulatedTransaction();
+        const predictRes = await apiClient.predict(payload);
 
-      setTransactions(prev => [record, ...prev.slice(0, 199)]);
+        record = {
+          ...payload,
+          id: predictRes.transaction_id || `TXN_${Date.now().toString().slice(-6)}`,
+          timestamp: new Date().toISOString(),
+          fraud_probability: predictRes.fraud_probability,
+          risk_level: (predictRes.risk_level as RiskLevel) || (predictRes.fraud_probability >= 0.74 ? 'HIGH' : predictRes.fraud_probability >= 0.45 ? 'MEDIUM' : 'LOW'),
+          verdict: (predictRes.verdict as Verdict) || (predictRes.fraud_probability >= 0.74 ? 'BLOCKED' : predictRes.fraud_probability >= 0.45 ? 'REVIEW' : 'APPROVED'),
+          recommendation: (predictRes.recommendation as any) || (predictRes.fraud_probability >= 0.74 ? 'BLOCK_TRANSACTION' : predictRes.fraud_probability >= 0.45 ? 'STEP_UP_AUTHENTICATION' : 'ALLOW_TRANSACTION'),
+          decision_threshold: predictRes.decision_threshold ?? 0.74,
+          inference_latency_ms: predictRes.inference_latency_ms ?? 11.2,
+          model_version: predictRes.model_version || 'RandomForest_Candidate @champion',
+          is_simulated: true
+        };
+      }
+
+      const activeRecord = record;
+      setTransactions(prev => [activeRecord, ...prev.slice(0, 199)]);
       setStreamStats(prev => ({
         totalStreamed: prev.totalStreamed + 1,
-        flaggedCount: prev.flaggedCount + (record.verdict === 'REVIEW' ? 1 : 0),
-        blockedCount: prev.blockedCount + (record.verdict === 'BLOCKED' ? 1 : 0),
+        flaggedCount: prev.flaggedCount + (activeRecord.verdict === 'REVIEW' ? 1 : 0),
+        blockedCount: prev.blockedCount + (activeRecord.verdict === 'BLOCKED' ? 1 : 0),
         currentTps: streamingTps
       }));
     }, intervalMs);

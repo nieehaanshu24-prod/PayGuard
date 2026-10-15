@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   GitCompare,
   AlertTriangle,
@@ -15,19 +15,19 @@ import { DriftReport } from '../../types';
 export const DriftMonitoringView: React.FC = () => {
   const [report, setReport] = useState<DriftReport>({
     status: 'drift_detected',
-    overall_psi: 0.264,
-    drift_threshold: 0.200,
-    features_monitored: 12,
-    drifted_features: ['amount', 'location_risk_score', 'velocity_1h'],
+    overall_psi: 0.0588,
+    drift_threshold: 0.100,
+    features_monitored: 7,
+    drifted_features: ['device_trust_score', 'location_risk_score', 'amount_to_avg_ratio'],
     timestamp: new Date().toISOString(),
     details: [
-      { feature: 'amount', psi: 0.312, status: 'DRIFT_ALERT', ks_p_value: 0.0012 },
-      { feature: 'location_risk_score', psi: 0.285, status: 'DRIFT_ALERT', ks_p_value: 0.0034 },
-      { feature: 'velocity_1h', psi: 0.218, status: 'DRIFT_ALERT', ks_p_value: 0.0120 },
-      { feature: 'device_trust_score', psi: 0.142, status: 'MODERATE', ks_p_value: 0.0820 },
-      { feature: 'user_avg_amount_30d', psi: 0.065, status: 'STABLE', ks_p_value: 0.4210 },
-      { feature: 'velocity_24h', psi: 0.088, status: 'STABLE', ks_p_value: 0.3150 },
-      { feature: 'channel', psi: 0.041, status: 'STABLE', ks_p_value: 0.6120 }
+      { feature: 'device_trust_score', psi: 0.2278, status: 'drift_detected', ks_p_value: 0.0001 },
+      { feature: 'location_risk_score', psi: 0.0740, status: 'drift_detected', ks_p_value: 0.0001 },
+      { feature: 'amount_to_avg_ratio', psi: 0.0644, status: 'drift_detected', ks_p_value: 0.0001 },
+      { feature: 'amount', psi: 0.0367, status: 'drift_detected', ks_p_value: 0.0001 },
+      { feature: 'velocity_1h', psi: 0.0230, status: 'drift_detected', ks_p_value: 0.0001 },
+      { feature: 'old_balance', psi: 0.0032, status: 'nominal', ks_p_value: 0.3201 },
+      { feature: 'new_balance', psi: 0.0031, status: 'nominal', ks_p_value: 0.2353 }
     ]
   });
 
@@ -39,6 +39,10 @@ export const DriftMonitoringView: React.FC = () => {
     setReport(newReport);
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    handleSimulateDrift();
+  }, []);
 
   return (
     <div className="space-y-5">

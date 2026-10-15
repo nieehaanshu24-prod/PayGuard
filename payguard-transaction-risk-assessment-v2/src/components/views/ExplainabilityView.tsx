@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Layers,
   Info,
@@ -8,21 +8,28 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { useDashboard } from '../../context/DashboardContext';
+import { apiClient } from '../../api/client';
 
 export const ExplainabilityView: React.FC = () => {
   const { selectedTransaction } = useDashboard();
+  const [globalFeatures, setGlobalFeatures] = useState<any[]>([
+    { name: 'Location Risk Score', meanShap: 0.335, importance_pct: 26.8, description: 'Geographic IP mismatch and anomalous routing hops', rank: 1 },
+    { name: 'Device Trust Score', meanShap: 0.277, importance_pct: 22.2, description: 'Cryptographic device signature and browser fingerprint trust', rank: 2 },
+    { name: 'Velocity 1H', meanShap: 0.242, importance_pct: 19.4, description: 'Burst frequency of transaction attempts within the last 60 minutes', rank: 3 },
+    { name: 'Velocity 24H', meanShap: 0.121, importance_pct: 9.6, description: 'Cumulative payment attempts across the past 24 hours', rank: 4 },
+    { name: 'Amount To Avg Ratio', meanShap: 0.084, importance_pct: 6.7, description: 'Sudden spending deviation relative to user 30-day baseline', rank: 5 },
+    { name: 'Hour Of Day', meanShap: 0.071, importance_pct: 5.6, description: 'Off-peak or nocturnal transaction timing pattern', rank: 6 },
+    { name: 'Balance Diff', meanShap: 0.047, importance_pct: 3.7, description: 'Account balance depletion velocity relative to transaction size', rank: 7 },
+    { name: 'Amount', meanShap: 0.029, importance_pct: 2.3, description: 'Nominal fiat payment amount', rank: 8 }
+  ]);
 
-  // Global feature importance baseline
-  const globalFeatures = [
-    { name: 'Amount vs. 30d Avg Ratio', meanShap: 0.342, description: 'Deviation from user historical transaction size', rank: 1 },
-    { name: 'Device Hardware Trust', meanShap: 0.285, description: 'Cryptographic binding vs rooted / emulated client', rank: 2 },
-    { name: 'Location / Routing Risk', meanShap: 0.198, description: 'Geo-velocity anomalies and suspicious ASN routing', rank: 3 },
-    { name: 'Burst Velocity (1h)', meanShap: 0.154, description: 'Frequency of attempted transactions in past 60 minutes', rank: 4 },
-    { name: 'Merchant Category MCC', meanShap: 0.112, description: 'High-risk MCC categories (crypto, remittance, gaming)', rank: 5 },
-    { name: 'Cross-Border Transfer', meanShap: 0.078, description: 'International settlement rail with foreign currency', rank: 6 },
-    { name: 'Cumulative Velocity (24h)', meanShap: 0.052, description: '24-hour total payment attempts', rank: 7 },
-    { name: 'Payment Rail (Channel)', meanShap: 0.041, description: 'UPI vs Credit Card vs Net Banking payment rails', rank: 8 }
-  ];
+  useEffect(() => {
+    apiClient.getGlobalFeatureImportance().then(items => {
+      if (items && items.length > 0) {
+        setGlobalFeatures(items);
+      }
+    });
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -69,17 +76,18 @@ export const ExplainabilityView: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {globalFeatures.map(f => {
-                const widthPercent = (f.meanShap / 0.35) * 100;
+                const val = typeof f.meanShap === 'number' ? f.meanShap : (f.mean_shap ?? f.importance ?? 0.1);
+                const widthPercent = f.importance_pct ? Math.min(100, f.importance_pct * 3.5) : Math.min(100, (val / 0.35) * 100);
 
                 return (
                   <tr key={f.rank} className="hover:bg-slate-50/80">
                     <td className="py-2.5 px-3.5 text-center font-mono text-slate-400 font-semibold text-[11px]">
-                      0{f.rank}
+                      {f.rank < 10 ? `0${f.rank}` : f.rank}
                     </td>
                     <td className="py-2.5 px-3 font-semibold text-slate-900 font-mono text-[11px]">{f.name}</td>
                     <td className="py-2.5 px-3 text-slate-600 text-[11px]">{f.description}</td>
                     <td className="py-2.5 px-3 text-right font-mono font-medium text-slate-900 tabular-nums">
-                      +{f.meanShap.toFixed(3)}
+                      +{val.toFixed(3)}
                     </td>
                     <td className="py-2.5 px-3">
                       <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
