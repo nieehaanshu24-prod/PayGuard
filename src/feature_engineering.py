@@ -54,4 +54,16 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     if "velocity_24h" not in df_out.columns:
         df_out["velocity_24h"] = 1
 
+    # 5. Normalize merchant category aliases from UI forms
+    if "merchant_category" in df_out.columns:
+        cat_map = {
+            "grocery_supermarket": "grocery",
+            "electronics_retail": "electronics",
+            "luxury_goods": "luxury",
+            "gambling_gaming": "gaming",
+            "money_transfer": "crypto_exchange",
+            "digital_services": "utilities"
+        }
+        df_out["merchant_category"] = df_out["merchant_category"].replace(cat_map)
+
     return df_out

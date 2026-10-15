@@ -58,7 +58,9 @@ class PayGuardExplainer:
             attributions.append({
                 "feature": feat_name,
                 "feature_value": round(val, 3),
+                "value": round(val, 3),
                 "shap_value": round(shap_val, 4),
+                "impact_value": round(shap_val, 4),
                 "impact": impact,
                 "abs_importance": abs(shap_val)
             })
@@ -85,6 +87,7 @@ class PayGuardExplainer:
             "fraud_probability": round(prob, 4),
             "is_fraud": is_fraud,
             "top_risk_factors": top_factors,
+            "shap_values": top_factors,
             "plain_language_summary": summary
         }
 

@@ -1,0 +1,1223 @@
+<!doctype html>
+<html lang="en" class="h-full bg-slate-50 text-slate-900 antialiased">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PayGuard: Transaction Risk Assessment</title>
+    <meta name="description" content="High-density B2B fintech risk evaluation console for real-time transaction scoring, decisioning, and SHAP feature attribution." />
+    <meta property="og:title" content="PayGuard: Transaction Risk Assessment" />
+    <meta property="og:description" content="High-density B2B fintech risk evaluation console for real-time transaction scoring, decisioning, and SHAP feature attribution." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+            },
+            colors: {
+              slate: {
+                50: '#f8fafc',
+                100: '#f1f5f9',
+                200: '#e2e8f0',
+                300: '#cbd5e1',
+                400: '#94a3b8',
+                500: '#64748b',
+                600: '#475569',
+                700: '#334155',
+                800: '#1e293b',
+                900: '#0f172a',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Hairline borders & refined micro-interactions */
+      * {
+        border-color: #e2e8f0;
+      }
+      .tabular-nums {
+        font-variant-numeric: tabular-nums;
+      }
+      input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        background: #e2e8f0;
+        height: 4px;
+        border-radius: 2px;
+        outline: none;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #0f172a;
+        cursor: pointer;
+        border: 2px solid #ffffff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+        transition: transform 0.1s ease;
+      }
+      input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.15);
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #0f172a;
+        cursor: pointer;
+        border: 2px solid #ffffff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+      }
+      /* Custom scrollbar for raw inspect panel */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+    </style>
+  </head>
+  <body class="min-h-full flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-slate-200">
+
+    <!-- Top Minimalist Navigation (Stripe Radar / Mercury Aesthetic) -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-13 flex items-center justify-between gap-4">
+        
+        <!-- Left: Wordmark & Engine Subtitle -->
+        <div class="flex items-center gap-3 shrink-0">
+          <div class="w-6 h-6 rounded bg-slate-900 flex items-center justify-center text-white font-semibold text-xs font-mono shadow-xs">
+            P
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-semibold tracking-tight text-slate-900 text-sm">PayGuard</span>
+            <span class="text-slate-300 text-xs">/</span>
+            <span class="text-xs font-mono text-slate-500 font-normal">Risk Engine v1.0</span>
+          </div>
+        </div>
+
+        <!-- Center: Quick Scenario Switcher (Segmented Control) -->
+        <nav class="hidden md:flex items-center bg-slate-100 p-0.5 rounded-md border border-slate-200/80 text-xs">
+          <button id="navPresetGrocery" type="button" class="px-2.5 py-1 font-medium rounded transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap cursor-pointer">
+            Grocery <span class="font-mono text-slate-400 font-normal">(UPI · $45)</span>
+          </button>
+          <button id="navPresetAnomalous" type="button" class="px-2.5 py-1 font-medium rounded transition-all bg-white text-slate-900 shadow-xs whitespace-nowrap cursor-pointer">
+            Midnight Transfer <span class="font-mono text-slate-400 font-normal">(CC · $2,850)</span>
+          </button>
+        </nav>
+
+        <!-- Right: HTTP Health Indicator & SLA Latency -->
+        <div class="flex items-center gap-3 text-xs shrink-0">
+          <!-- API Endpoint & Health Dot -->
+          <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-2 py-1 rounded text-slate-700" title="Checks GET /health on local service">
+            <span id="apiHealthDot" class="w-1.5 h-1.5 rounded-full bg-slate-400 transition-colors"></span>
+            <span id="apiHostLabel" class="font-mono text-[11px] text-slate-600">API: 127.0.0.1:8000</span>
+            <button id="btnConfigureApi" type="button" class="text-slate-400 hover:text-slate-600 transition-colors ml-0.5 cursor-pointer" title="Configure API Host URL">
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- p95 SLA Label -->
+          <div class="hidden sm:flex items-center gap-1 text-[11px] font-mono text-slate-500">
+            <span>p95:</span>
+            <span class="text-slate-800 font-medium">11.75ms</span>
+          </div>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- Configure API Dialog / Modal -->
+    <div id="apiConfigModal" class="fixed inset-0 z-50 bg-slate-900/30 hidden flex items-center justify-center p-4">
+      <div class="bg-white border border-slate-200 rounded-md max-w-sm w-full p-5 shadow-lg space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <h3 class="text-xs font-semibold text-slate-900">API Connection Settings</h3>
+          <button id="btnCloseModal" class="text-slate-400 hover:text-slate-600 text-sm font-mono cursor-pointer">&times;</button>
+        </div>
+        <p class="text-[11px] text-slate-500 leading-relaxed">
+          Default connects to your local FastAPI backend at <code class="font-mono text-slate-700 bg-slate-100 px-1 py-0.5 rounded">http://localhost:8000</code>. If unreachable, the built-in model emulation engine serves accurate responses seamlessly.
+        </p>
+        <div class="space-y-1">
+          <label class="block text-[11px] font-medium text-slate-700">FastAPI Host URL</label>
+          <input id="inputApiUrl" type="text" value="http://localhost:8000" class="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded px-2.5 py-1.5 text-slate-900 focus:outline-none focus:border-slate-400 focus:bg-white" />
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-1">
+          <button id="btnResetApiDefault" type="button" class="px-2.5 py-1.5 text-[11px] text-slate-600 hover:text-slate-900 border border-slate-200 rounded">Default</button>
+          <button id="btnSaveApiConfig" type="button" class="px-3 py-1.5 text-[11px] font-medium bg-slate-900 hover:bg-slate-800 text-white rounded">Save & Connect</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Viewport Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
+
+      <!-- Top Scenario Bar (Compact Banner) -->
+      <section aria-label="Scenario Selector" class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white border border-slate-200 rounded-md px-3.5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-[11px] font-medium text-slate-400 tracking-wider uppercase shrink-0">Test Scenarios</span>
+          <span class="text-slate-300 font-light">·</span>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button id="presetGrocery" type="button" class="text-xs text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 px-2.5 py-1 rounded transition-colors text-left font-normal cursor-pointer">
+              Preset: Authentic Grocery Purchase <span class="text-slate-500 font-mono">(UPI · $45.00)</span>
+            </button>
+            <button id="presetAnomalous" type="button" class="text-xs text-slate-900 bg-slate-100 hover:bg-slate-200/80 border border-slate-300 px-2.5 py-1 rounded transition-colors text-left font-medium cursor-pointer">
+              Preset: Anomalous Midnight Transfer <span class="text-slate-600 font-mono font-normal">(Credit Card · $2,850.00)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 text-xs shrink-0 self-end sm:self-auto">
+          <span id="serviceStatusBanner" class="font-mono text-slate-400 text-[11px] hidden sm:inline">Checking service...</span>
+          <button id="btnResetForm" type="button" class="text-slate-400 hover:text-slate-700 text-xs transition-colors cursor-pointer">
+            Clear Form
+          </button>
+        </div>
+      </section>
+
+      <!-- Main Split View (2-Column Grid) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        <!-- Left Column: Transaction Parameters (5 Cols on LG) -->
+        <div class="lg:col-span-5 bg-white border border-slate-200 rounded-md p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-xs font-semibold tracking-tight uppercase text-slate-900">Transaction Details</h2>
+              <p class="text-[11px] text-slate-500 mt-0.5">Parameters supplied to feature extraction & decision model</p>
+            </div>
+            <span class="text-[11px] font-mono text-slate-400" id="txIdDisplay">TXN_0100_9841</span>
+          </div>
+
+          <form id="riskForm" class="space-y-3.5">
+            <!-- Row 1: User Identifier & Payment Rail -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="userId" class="block text-[11px] font-medium text-slate-600 mb-1">User Identifier</label>
+                <input type="text" id="userId" name="user_id" value="USR_0100" required
+                  class="w-full text-xs font-mono bg-slate-50 hover:bg-slate-50/80 border border-slate-200 rounded px-2.5 py-1.5 text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-colors" />
+              </div>
+              <div>
+                <label for="channel" class="block text-[11px] font-medium text-slate-600 mb-1">Payment Rail</label>
+                <select id="channel" name="channel"
+                  class="w-full text-xs bg-slate-50 hover:bg-slate-50/80 border border-slate-200 rounded px-2.5 py-1.5 text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-colors">
+                  <option value="UPI">UPI</option>
+                  <option value="CREDIT_CARD" selected>Credit Card</option>
+                  <option value="DEBIT_CARD">Debit Card</option>
+                  <option value="NET_BANKING">Net Banking</option>
+                  <option value="WALLET">Wallet</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 2: Amount & 30-Day Avg -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="amount" class="block text-[11px] font-medium text-slate-600 mb-1">Transaction Amount</label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 text-xs font-mono">$</span>
+                  <input type="number" step="0.01" min="0" id="amount" name="amount" value="2850.00" required
+                    class="w-full text-xs font-mono pl-6 pr-2.5 py-1.5 bg-slate-50 hover:bg-slate-50/80 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-colors" />
+                </div>
+              </div>
+              <div>
+                <label for="userAvgAmount30d" class="block text-[11px] font-medium text-slate-600 mb-1">User 30-Day Avg</label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 text-xs font-mono">$</span>
+                  <input type="number" step="0.01" min="0" id="userAvgAmount30d" name="user_avg_amount_30d" value="50.00" required
+                    class="w-full text-xs font-mono pl-6 pr-2.5 py-1.5 bg-slate-50 hover:bg-slate-50/80 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-colors" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 3: Account Balance Prior & Post -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="oldBalance" class="block text-[11px] font-medium text-slate-600 mb-1">Prior Balance ($)</label>
+                <input type="number" step="0.01" min="0" id="oldBalance" name="old_balance" value="4000.00" required
+                  class="w-full text-xs font-mono px-2.5 py-1.5 bg-slate-50 hover:bg-slate-50/80 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-colors" />
+              </div>
+              <div>
+                <label for="newBalance" class="block text-[11px] font-medium text-slate-600 mb-1">Post Balance ($)</label>
+                <input type="number" step="0.01" min="0" id="newBalance" name="new_balance" value="1150.00" required
+                  class="w-full text-xs font-mono px-2.5 py-1.5 bg-slate-50 hover:bg-slate-50/80 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-colors" />
+              </div>
+            </div>
+
+            <!-- Row 4: Merchant Category & Cross-border Toggle -->
+            <div class="grid grid-cols-2 gap-3 items-center">
+              <div>
+                <label for="merchantCategory" class="block text-[11px] font-medium text-slate-600 mb-1">Merchant Category</label>
+                <select id="merchantCategory" name="merchant_category"
+                  class="w-full text-xs bg-slate-50 hover:bg-slate-50/80 border border-slate-200 rounded px-2.5 py-1.5 text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-colors font-mono">
+                  <option value="crypto_exchange" selected>crypto_exchange</option>
+                  <option value="grocery_supermarket">grocery_supermarket</option>
+                  <option value="electronics_retail">electronics_retail</option>
+                  <option value="luxury_goods">luxury_goods</option>
+                  <option value="money_transfer">money_transfer</option>
+                  <option value="gambling_gaming">gambling_gaming</option>
+                  <option value="digital_services">digital_services</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">Cross-Border Transfer</label>
+                <div class="flex items-center gap-2 pt-0.5">
+                  <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="isForeignTransaction" name="is_foreign_transaction" checked class="sr-only peer" />
+                    <div class="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-slate-900 relative"></div>
+                  </label>
+                  <span id="crossBorderStatusText" class="text-xs font-mono text-slate-700">Yes (1)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 5: Device Trust Score -->
+            <div class="space-y-1 bg-slate-50/60 p-2.5 rounded border border-slate-100">
+              <div class="flex items-center justify-between">
+                <label for="deviceTrustScore" class="text-[11px] font-medium text-slate-700">Device Trust Score</label>
+                <div class="flex items-center gap-1.5 font-mono text-xs">
+                  <span id="deviceTrustVal" class="font-semibold text-slate-900">0.08</span>
+                  <span id="deviceTrustLabel" class="text-[10px] text-rose-600 font-sans font-normal">(Untrusted)</span>
+                </div>
+              </div>
+              <input type="range" min="0" max="1" step="0.01" id="deviceTrustScore" name="device_trust_score" value="0.08" class="w-full cursor-pointer" />
+              <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+                <span>0.00 (Emulated / Rooted)</span>
+                <span>1.00 (Hardware Bound)</span>
+              </div>
+            </div>
+
+            <!-- Row 6: Location Risk Score -->
+            <div class="space-y-1 bg-slate-50/60 p-2.5 rounded border border-slate-100">
+              <div class="flex items-center justify-between">
+                <label for="locationRiskScore" class="text-[11px] font-medium text-slate-700">Location Risk Score</label>
+                <div class="flex items-center gap-1.5 font-mono text-xs">
+                  <span id="locationRiskVal" class="font-semibold text-slate-900">0.92</span>
+                  <span id="locationRiskLabel" class="text-[10px] text-rose-600 font-sans font-normal">(Anomalous Geo)</span>
+                </div>
+              </div>
+              <input type="range" min="0" max="1" step="0.01" id="locationRiskScore" name="location_risk_score" value="0.92" class="w-full cursor-pointer" />
+              <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+                <span>0.00 (Home Telemetry)</span>
+                <span>1.00 (High-Risk ASN/VPN)</span>
+              </div>
+            </div>
+
+            <!-- Row 7: Velocity 1h & 24h -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="velocity1h" class="block text-[11px] font-medium text-slate-600 mb-1">Velocity 1h (Txns)</label>
+                <input type="number" min="0" id="velocity1h" name="velocity_1h" value="6" required
+                  class="w-full text-xs font-mono px-2.5 py-1.5 bg-slate-50 hover:bg-slate-50/80 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-colors" />
+              </div>
+              <div>
+                <label for="velocity24h" class="block text-[11px] font-medium text-slate-600 mb-1">Velocity 24h (Txns)</label>
+                <input type="number" min="0" id="velocity24h" name="velocity_24h" value="9" required
+                  class="w-full text-xs font-mono px-2.5 py-1.5 bg-slate-50 hover:bg-slate-50/80 border border-slate-200 rounded text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-colors" />
+              </div>
+            </div>
+
+            <!-- Primary Action Button -->
+            <div class="pt-1">
+              <button id="btnEvaluate" type="submit"
+                class="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-medium py-2 px-4 rounded transition-all text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50">
+                <svg id="evalSpinner" class="w-3.5 h-3.5 animate-spin hidden" viewBox="0 0 24 24" fill="none">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <span id="evalBtnLabel">Evaluate Risk</span>
+                <span class="text-slate-400 text-[10px] font-mono hidden sm:inline ml-1 font-normal">(⌘+Enter)</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Right Column: Risk Assessment Outcome (7 Cols on LG) -->
+        <div class="lg:col-span-7 space-y-4">
+
+          <!-- State A: Empty State Placeholder -->
+          <div id="stateEmpty" class="bg-white border border-slate-200 rounded-md p-8 text-center space-y-4 min-h-[500px] hidden flex-col items-center justify-center shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+            <div class="w-9 h-9 rounded bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 mx-auto">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <div class="max-w-xs space-y-1">
+              <h3 class="text-xs font-semibold text-slate-900">Awaiting Evaluation</h3>
+              <p class="text-[11px] text-slate-500 leading-relaxed">
+                Submit or select a transaction to view risk evaluation.
+              </p>
+            </div>
+            <div class="pt-2 flex flex-col sm:flex-row gap-2">
+              <button type="button" onclick="document.getElementById('presetGrocery').click();" class="text-xs text-slate-600 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded hover:bg-slate-50 transition-colors cursor-pointer">
+                Load Grocery Preset
+              </button>
+              <button type="button" onclick="document.getElementById('presetAnomalous').click();" class="text-xs text-slate-600 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded hover:bg-slate-50 transition-colors cursor-pointer">
+                Load Midnight Transfer Preset
+              </button>
+            </div>
+          </div>
+
+          <!-- State B: Evaluated Card (Visible by Default with Anomalous Preset) -->
+          <div id="stateEvaluated" class="space-y-4">
+
+            <!-- Verdict Card -->
+            <div class="bg-white border border-slate-200 rounded-md p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4">
+              
+              <!-- Header: Large clean verdict badge next to exact probability score -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+                <div class="flex items-center gap-3">
+                  <!-- Verdict Badge -->
+                  <span id="verdictBadge" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold font-mono uppercase tracking-wider bg-rose-50 text-rose-800 border border-rose-200">
+                    BLOCKED
+                  </span>
+                  <!-- Exact Probability Score -->
+                  <div class="flex items-baseline gap-1.5">
+                    <span id="fraudProbabilityVal" class="text-2xl font-bold tracking-tight text-slate-900 font-mono tabular-nums">96.4%</span>
+                    <span class="text-xs font-medium text-slate-500">Fraud Probability</span>
+                  </div>
+                </div>
+
+                <!-- Execution Timestamp & Source Indicator -->
+                <div class="flex items-center gap-2 text-[11px] font-mono text-slate-400">
+                  <span id="evalTimestamp">13:31:28.412 UTC</span>
+                  <span>·</span>
+                  <span id="evalSourceBadge" class="text-slate-500">FastAPI :8000</span>
+                </div>
+              </div>
+
+              <!-- Stripe Radar Signature Spectrum Gauge -->
+              <div class="space-y-1.5 py-1">
+                <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                  <span class="text-emerald-700 font-medium">0 · Normal</span>
+                  <span class="text-amber-700 font-medium">45 · Elevated</span>
+                  <span class="text-rose-700 font-medium">74 · Block Threshold</span>
+                  <span>100</span>
+                </div>
+                <!-- Track Bar -->
+                <div class="relative w-full h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                  <div class="h-full bg-emerald-200/80 w-[45%]"></div>
+                  <div class="h-full bg-amber-200/80 w-[29%]"></div>
+                  <div class="h-full bg-rose-200/80 w-[26%]"></div>
+                </div>
+                <!-- Needle Position Indicator -->
+                <div class="relative w-full h-3">
+                  <div id="radarNeedle" class="absolute top-0 -translate-x-1/2 flex flex-col items-center transition-all duration-500" style="left: 96.4%;">
+                    <div class="w-0 h-0 border-l-[3.5px] border-l-transparent border-r-[3.5px] border-r-transparent border-b-[5px] border-b-slate-900"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Key-Value Metadata Grid (4 Cards/Cells) -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div class="bg-slate-50 border border-slate-200/80 rounded p-2.5">
+                  <span class="block text-[10px] font-medium text-slate-500 uppercase tracking-wider">Decision Threshold</span>
+                  <span id="metaThreshold" class="text-xs font-semibold font-mono text-slate-900 mt-0.5 block tabular-nums">0.74</span>
+                </div>
+                <div class="bg-slate-50 border border-slate-200/80 rounded p-2.5">
+                  <span class="block text-[10px] font-medium text-slate-500 uppercase tracking-wider">Action Recommendation</span>
+                  <span id="metaRecommendation" class="text-[11px] font-semibold font-mono text-slate-900 mt-0.5 block truncate">BLOCK_TRANSACTION</span>
+                </div>
+                <div class="bg-slate-50 border border-slate-200/80 rounded p-2.5">
+                  <span class="block text-[10px] font-medium text-slate-500 uppercase tracking-wider">Inference Latency</span>
+                  <span id="metaLatency" class="text-xs font-semibold font-mono text-slate-900 mt-0.5 block tabular-nums">11.2 ms</span>
+                </div>
+                <div class="bg-slate-50 border border-slate-200/80 rounded p-2.5">
+                  <span class="block text-[10px] font-medium text-slate-500 uppercase tracking-wider">Model Candidate</span>
+                  <span id="metaModel" class="text-[11px] font-medium font-mono text-slate-700 mt-0.5 block truncate" title="RandomForest_Candidate @champion">RF_Candidate @champ</span>
+                </div>
+              </div>
+
+              <!-- Analyst Plain-Language Note (Quiet 1-sentence gray callout) -->
+              <div class="bg-slate-50 border border-slate-200 rounded p-3 text-xs text-slate-700 leading-relaxed">
+                <div class="flex items-start gap-2">
+                  <svg class="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                  <p>
+                    <span class="font-medium text-slate-900">Analyst Synthesis:</span>
+                    <span id="plainLanguageSummaryText">Transaction flagged due to extreme deviation from 30-day user average (57x increase) combined with untrusted device and crypto merchant velocity.</span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- SHAP Attribution Table (from POST /explain) -->
+              <div class="space-y-2 pt-1">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h3 class="text-xs font-semibold text-slate-900 tracking-tight">SHAP Attribution Table</h3>
+                    <p class="text-[11px] text-slate-500">Feature contributions to log-odds shift</p>
+                  </div>
+                  <span class="text-[10px] font-mono text-slate-400">TreeSHAP Explainer</span>
+                </div>
+
+                <div class="border border-slate-200 rounded overflow-hidden">
+                  <table class="min-w-full divide-y divide-slate-200 text-xs text-left">
+                    <thead class="bg-slate-50 text-[10px] font-medium text-slate-600 uppercase tracking-wider">
+                      <tr>
+                        <th scope="col" class="py-2 px-3 font-medium">Feature</th>
+                        <th scope="col" class="py-2 px-3 font-medium">Observed Value</th>
+                        <th scope="col" class="py-2 px-3 font-medium text-right font-mono">Impact</th>
+                        <th scope="col" class="py-2 px-3 font-medium w-32">Magnitude</th>
+                      </tr>
+                    </thead>
+                    <tbody id="shapTableBody" class="divide-y divide-slate-100 bg-white">
+                      <!-- Rendered dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Action Footer & Raw Payload Details -->
+              <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs border-t border-slate-100">
+                <div class="flex items-center gap-2">
+                  <button id="btnCopySummary" type="button" class="text-slate-600 hover:text-slate-900 border border-slate-200 px-2.5 py-1 rounded hover:bg-slate-50 transition-colors cursor-pointer text-[11px]">
+                    Copy Summary
+                  </button>
+                  <button id="btnToggleRaw" type="button" class="text-slate-500 hover:text-slate-800 text-[11px] underline decoration-slate-300 cursor-pointer">
+                    Inspect Raw JSON
+                  </button>
+                </div>
+                <div class="text-[11px] font-mono text-slate-400">
+                  Ref: <span id="txnRefNumber">TXN-0100-841</span>
+                </div>
+              </div>
+
+              <!-- Collapsible Raw JSON Viewer -->
+              <div id="rawJsonContainer" class="hidden pt-2 border-t border-slate-100 space-y-2">
+                <div class="flex items-center justify-between text-[11px] font-mono text-slate-500">
+                  <span>POST /predict & /explain Payloads</span>
+                  <button id="btnCopyJson" class="text-slate-600 hover:text-slate-900 underline cursor-pointer">Copy JSON</button>
+                </div>
+                <pre id="rawJsonOutput" class="bg-slate-900 text-slate-100 p-3 rounded font-mono text-[11px] overflow-x-auto max-h-56 leading-tight"></pre>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Vanilla JavaScript Integration Engine -->
+    <script>
+      (function() {
+        const DEFAULT_API_BASE = 'http://localhost:8000';
+        let apiBaseUrl = localStorage.getItem('payguard_api_base') || DEFAULT_API_BASE;
+        let isBackendLive = false;
+        let lastPayload = null;
+        let lastAssessment = null;
+
+        // Elements
+        const apiHealthDot = document.getElementById('apiHealthDot');
+        const apiHostLabel = document.getElementById('apiHostLabel');
+        const serviceStatusBanner = document.getElementById('serviceStatusBanner');
+        const btnConfigureApi = document.getElementById('btnConfigureApi');
+        const apiConfigModal = document.getElementById('apiConfigModal');
+        const btnCloseModal = document.getElementById('btnCloseModal');
+        const inputApiUrl = document.getElementById('inputApiUrl');
+        const btnSaveApiConfig = document.getElementById('btnSaveApiConfig');
+        const btnResetApiDefault = document.getElementById('btnResetApiDefault');
+
+        const presetGrocery = document.getElementById('presetGrocery');
+        const presetAnomalous = document.getElementById('presetAnomalous');
+        const navPresetGrocery = document.getElementById('navPresetGrocery');
+        const navPresetAnomalous = document.getElementById('navPresetAnomalous');
+        const btnResetForm = document.getElementById('btnResetForm');
+        const riskForm = document.getElementById('riskForm');
+        const btnEvaluate = document.getElementById('btnEvaluate');
+        const evalSpinner = document.getElementById('evalSpinner');
+        const evalBtnLabel = document.getElementById('evalBtnLabel');
+
+        const stateEmpty = document.getElementById('stateEmpty');
+        const stateEvaluated = document.getElementById('stateEvaluated');
+
+        const verdictBadge = document.getElementById('verdictBadge');
+        const fraudProbabilityVal = document.getElementById('fraudProbabilityVal');
+        const evalTimestamp = document.getElementById('evalTimestamp');
+        const evalSourceBadge = document.getElementById('evalSourceBadge');
+        const metaThreshold = document.getElementById('metaThreshold');
+        const metaRecommendation = document.getElementById('metaRecommendation');
+        const metaLatency = document.getElementById('metaLatency');
+        const metaModel = document.getElementById('metaModel');
+        const radarNeedle = document.getElementById('radarNeedle');
+        const plainLanguageSummaryText = document.getElementById('plainLanguageSummaryText');
+        const shapTableBody = document.getElementById('shapTableBody');
+        const btnCopySummary = document.getElementById('btnCopySummary');
+        const btnToggleRaw = document.getElementById('btnToggleRaw');
+        const rawJsonContainer = document.getElementById('rawJsonContainer');
+        const rawJsonOutput = document.getElementById('rawJsonOutput');
+        const btnCopyJson = document.getElementById('btnCopyJson');
+
+        const deviceTrustScore = document.getElementById('deviceTrustScore');
+        const deviceTrustVal = document.getElementById('deviceTrustVal');
+        const deviceTrustLabel = document.getElementById('deviceTrustLabel');
+        const locationRiskScore = document.getElementById('locationRiskScore');
+        const locationRiskVal = document.getElementById('locationRiskVal');
+        const locationRiskLabel = document.getElementById('locationRiskLabel');
+        const isForeignTransaction = document.getElementById('isForeignTransaction');
+        const crossBorderStatusText = document.getElementById('crossBorderStatusText');
+
+        function updateHostLabel() {
+          try {
+            const url = new URL(apiBaseUrl);
+            apiHostLabel.textContent = `API: ${url.host}`;
+          } catch(e) {
+            apiHostLabel.textContent = `API: ${apiBaseUrl}`;
+          }
+          inputApiUrl.value = apiBaseUrl;
+        }
+        updateHostLabel();
+
+        function syncSliderLabels() {
+          const dVal = parseFloat(deviceTrustScore.value);
+          deviceTrustVal.textContent = dVal.toFixed(2);
+          if (dVal < 0.3) {
+            deviceTrustLabel.textContent = '(Untrusted / Rooted)';
+            deviceTrustLabel.className = 'text-[10px] text-rose-600 font-sans font-normal';
+          } else if (dVal < 0.7) {
+            deviceTrustLabel.textContent = '(Moderate Trust)';
+            deviceTrustLabel.className = 'text-[10px] text-amber-600 font-sans font-normal';
+          } else {
+            deviceTrustLabel.textContent = '(Hardware Verified)';
+            deviceTrustLabel.className = 'text-[10px] text-emerald-700 font-sans font-normal';
+          }
+
+          const lVal = parseFloat(locationRiskScore.value);
+          locationRiskVal.textContent = lVal.toFixed(2);
+          if (lVal > 0.7) {
+            locationRiskLabel.textContent = '(High-Risk Hop / VPN)';
+            locationRiskLabel.className = 'text-[10px] text-rose-600 font-sans font-normal';
+          } else if (lVal > 0.3) {
+            locationRiskLabel.textContent = '(Roaming Geo)';
+            locationRiskLabel.className = 'text-[10px] text-amber-600 font-sans font-normal';
+          } else {
+            locationRiskLabel.textContent = '(Matched User Home)';
+            locationRiskLabel.className = 'text-[10px] text-emerald-700 font-sans font-normal';
+          }
+        }
+
+        deviceTrustScore.addEventListener('input', syncSliderLabels);
+        locationRiskScore.addEventListener('input', syncSliderLabels);
+        isForeignTransaction.addEventListener('change', (e) => {
+          crossBorderStatusText.textContent = e.target.checked ? 'Yes (1)' : 'No (0)';
+        });
+
+        // Health check prober
+        async function checkApiHealth() {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1200);
+          try {
+            const res = await fetch(`${apiBaseUrl}/health`, {
+              method: 'GET',
+              headers: { 'Accept': 'application/json' },
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+              isBackendLive = true;
+              apiHealthDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-xs';
+              serviceStatusBanner.textContent = 'FastAPI :8000 connected';
+              serviceStatusBanner.className = 'font-mono text-emerald-600 text-[11px] hidden sm:inline';
+              return true;
+            }
+          } catch (err) {
+            // Service not running locally or sandbox mixed content
+          }
+          isBackendLive = false;
+          apiHealthDot.className = 'w-1.5 h-1.5 rounded-full bg-slate-400';
+          serviceStatusBanner.textContent = 'Local daemon unreachable · Emulation engine standby';
+          serviceStatusBanner.className = 'font-mono text-slate-400 text-[11px] hidden sm:inline';
+          return false;
+        }
+
+        checkApiHealth();
+        setInterval(checkApiHealth, 15000);
+
+        // Modal Handlers
+        btnConfigureApi.addEventListener('click', () => apiConfigModal.classList.remove('hidden'));
+        btnCloseModal.addEventListener('click', () => apiConfigModal.classList.add('hidden'));
+        btnResetApiDefault.addEventListener('click', () => { inputApiUrl.value = DEFAULT_API_BASE; });
+        btnSaveApiConfig.addEventListener('click', async () => {
+          let val = inputApiUrl.value.trim();
+          if (!val) val = DEFAULT_API_BASE;
+          if (!val.startsWith('http://') && !val.startsWith('https://')) {
+            val = 'http://' + val;
+          }
+          apiBaseUrl = val;
+          localStorage.setItem('payguard_api_base', apiBaseUrl);
+          updateHostLabel();
+          apiConfigModal.classList.add('hidden');
+          await checkApiHealth();
+        });
+
+        function setNavPresetActive(isGrocery) {
+          if (isGrocery) {
+            navPresetGrocery.className = 'px-2.5 py-1 font-medium rounded transition-all bg-white text-slate-900 shadow-xs whitespace-nowrap cursor-pointer';
+            navPresetAnomalous.className = 'px-2.5 py-1 font-medium rounded transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap cursor-pointer';
+            presetGrocery.className = 'text-xs text-slate-900 bg-slate-100 hover:bg-slate-200/80 border border-slate-300 px-2.5 py-1 rounded transition-colors text-left font-medium cursor-pointer';
+            presetAnomalous.className = 'text-xs text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 px-2.5 py-1 rounded transition-colors text-left font-normal cursor-pointer';
+          } else {
+            navPresetGrocery.className = 'px-2.5 py-1 font-medium rounded transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap cursor-pointer';
+            navPresetAnomalous.className = 'px-2.5 py-1 font-medium rounded transition-all bg-white text-slate-900 shadow-xs whitespace-nowrap cursor-pointer';
+            presetGrocery.className = 'text-xs text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 px-2.5 py-1 rounded transition-colors text-left font-normal cursor-pointer';
+            presetAnomalous.className = 'text-xs text-slate-900 bg-slate-100 hover:bg-slate-200/80 border border-slate-300 px-2.5 py-1 rounded transition-colors text-left font-medium cursor-pointer';
+          }
+        }
+
+        // Preset 1: Grocery
+        function loadGroceryScenario() {
+          setNavPresetActive(true);
+          document.getElementById('userId').value = 'USR_0892';
+          document.getElementById('channel').value = 'UPI';
+          document.getElementById('amount').value = '45.00';
+          document.getElementById('userAvgAmount30d').value = '52.50';
+          document.getElementById('oldBalance').value = '1840.00';
+          document.getElementById('newBalance').value = '1795.00';
+          document.getElementById('merchantCategory').value = 'grocery_supermarket';
+          isForeignTransaction.checked = false;
+          crossBorderStatusText.textContent = 'No (0)';
+          deviceTrustScore.value = '0.96';
+          locationRiskScore.value = '0.04';
+          syncSliderLabels();
+          document.getElementById('velocity1h').value = '1';
+          document.getElementById('velocity24h').value = '2';
+          document.getElementById('txIdDisplay').textContent = 'TXN_0892_1042';
+          document.getElementById('txnRefNumber').textContent = 'TXN-0892-042';
+          triggerEvaluation();
+        }
+
+        // Preset 2: Anomalous Midnight Transfer
+        function loadAnomalousScenario() {
+          setNavPresetActive(false);
+          document.getElementById('userId').value = 'USR_0100';
+          document.getElementById('channel').value = 'CREDIT_CARD';
+          document.getElementById('amount').value = '2850.00';
+          document.getElementById('userAvgAmount30d').value = '50.00';
+          document.getElementById('oldBalance').value = '4000.00';
+          document.getElementById('newBalance').value = '1150.00';
+          document.getElementById('merchantCategory').value = 'crypto_exchange';
+          isForeignTransaction.checked = true;
+          crossBorderStatusText.textContent = 'Yes (1)';
+          deviceTrustScore.value = '0.08';
+          locationRiskScore.value = '0.92';
+          syncSliderLabels();
+          document.getElementById('velocity1h').value = '6';
+          document.getElementById('velocity24h').value = '9';
+          document.getElementById('txIdDisplay').textContent = 'TXN_0100_9841';
+          document.getElementById('txnRefNumber').textContent = 'TXN-0100-841';
+          triggerEvaluation();
+        }
+
+        presetGrocery.addEventListener('click', loadGroceryScenario);
+        navPresetGrocery.addEventListener('click', loadGroceryScenario);
+        presetAnomalous.addEventListener('click', loadAnomalousScenario);
+        navPresetAnomalous.addEventListener('click', loadAnomalousScenario);
+
+        // Safe Clipboard Copy Helper (works in restricted iframes and insecure contexts)
+        function copyToClipboard(text) {
+          if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+          } else {
+            fallbackCopy(text);
+            return Promise.resolve();
+          }
+        }
+
+        function fallbackCopy(text) {
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-999999px";
+          textArea.style.top = "-999999px";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+            document.execCommand('copy');
+          } catch (err) {
+            console.warn('Fallback copy error:', err);
+          }
+          document.body.removeChild(textArea);
+        }
+
+        // Show/Hide States cleanly
+        function showEmptyState() {
+          stateEvaluated.classList.add('hidden');
+          stateEmpty.classList.remove('hidden');
+          stateEmpty.classList.add('flex');
+        }
+
+        function showEvaluatedState() {
+          stateEmpty.classList.add('hidden');
+          stateEmpty.classList.remove('flex');
+          stateEvaluated.classList.remove('hidden');
+        }
+
+        // Reset Form
+        btnResetForm.addEventListener('click', () => {
+          riskForm.reset();
+          deviceTrustScore.value = '0.50';
+          locationRiskScore.value = '0.50';
+          syncSliderLabels();
+          crossBorderStatusText.textContent = 'No (0)';
+          markCustomInput();
+          showEmptyState();
+        });
+
+        function markCustomInput() {
+          navPresetGrocery.className = 'px-2.5 py-1 font-medium rounded transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap cursor-pointer';
+          navPresetAnomalous.className = 'px-2.5 py-1 font-medium rounded transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap cursor-pointer';
+          presetGrocery.className = 'text-xs text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 px-2.5 py-1 rounded transition-colors text-left font-normal cursor-pointer';
+          presetAnomalous.className = 'text-xs text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 px-2.5 py-1 rounded transition-colors text-left font-normal cursor-pointer';
+        }
+
+        // Track user edits
+        riskForm.querySelectorAll('input, select').forEach(el => {
+          el.addEventListener('input', markCustomInput);
+          el.addEventListener('change', markCustomInput);
+        });
+
+        // Close modal on Escape
+        window.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && !apiConfigModal.classList.contains('hidden')) {
+            apiConfigModal.classList.add('hidden');
+          }
+        });
+
+        function getFormPayload() {
+          return {
+            user_id: document.getElementById('userId').value.trim() || 'USR_0100',
+            amount: parseFloat(document.getElementById('amount').value) || 0.0,
+            old_balance: parseFloat(document.getElementById('oldBalance').value) || 0.0,
+            new_balance: parseFloat(document.getElementById('newBalance').value) || 0.0,
+            user_avg_amount_30d: parseFloat(document.getElementById('userAvgAmount30d').value) || 1.0,
+            channel: document.getElementById('channel').value,
+            merchant_category: document.getElementById('merchantCategory').value,
+            is_foreign_transaction: isForeignTransaction.checked ? 1 : 0,
+            device_trust_score: parseFloat(deviceTrustScore.value),
+            location_risk_score: parseFloat(locationRiskScore.value),
+            velocity_1h: parseInt(document.getElementById('velocity1h').value, 10) || 0,
+            velocity_24h: parseInt(document.getElementById('velocity24h').value, 10) || 0
+          };
+        }
+
+        // Emulated Decision Model Engine
+        function computeEmulatedRisk(payload) {
+          const ratio = payload.amount / (payload.user_avg_amount_30d || 1.0);
+          let score = 0.04;
+
+          // Amount divergence factor
+          if (ratio > 20) score += 0.36;
+          else if (ratio > 5) score += 0.22;
+          else if (ratio > 2) score += 0.08;
+
+          // Device & Geo Factors
+          score += (1.0 - payload.device_trust_score) * 0.26;
+          score += payload.location_risk_score * 0.22;
+
+          // Velocity Factors
+          if (payload.velocity_1h >= 5) score += 0.16;
+          else if (payload.velocity_1h >= 3) score += 0.08;
+
+          // Channel & Category
+          if (payload.merchant_category === 'crypto_exchange' || payload.merchant_category === 'gambling_gaming') {
+            score += 0.14;
+          }
+          if (payload.is_foreign_transaction === 1) {
+            score += 0.09;
+          }
+
+          // Mitigating hardware signature
+          if (payload.device_trust_score > 0.9 && payload.location_risk_score < 0.1) {
+            score -= 0.18;
+          }
+
+          score = Math.max(0.012, Math.min(0.994, score));
+
+          let verdict = 'APPROVED';
+          let recommendation = 'ALLOW_TRANSACTION';
+          const threshold = 0.74;
+
+          if (score >= threshold) {
+            verdict = 'BLOCKED';
+            recommendation = 'BLOCK_TRANSACTION';
+          } else if (score >= 0.45) {
+            verdict = 'REVIEW';
+            recommendation = 'STEP_UP_AUTHENTICATION';
+          }
+
+          const shap = [];
+          if (ratio >= 2.0) {
+            shap.push({
+              feature: 'Amount vs. 30d Baseline',
+              value: `${ratio.toFixed(1)}x ($${payload.amount.toLocaleString()} vs $${payload.user_avg_amount_30d.toLocaleString()})`,
+              impact: +(ratio > 10 ? 0.342 : 0.185),
+              direction: 'positive'
+            });
+          } else {
+            shap.push({
+              feature: 'Amount vs. 30d Baseline',
+              value: `${ratio.toFixed(1)}x (In line with 30d history)`,
+              impact: -0.112,
+              direction: 'negative'
+            });
+          }
+
+          if (payload.device_trust_score < 0.3) {
+            shap.push({
+              feature: 'Device Hardware Trust',
+              value: `${payload.device_trust_score.toFixed(2)} (Untrusted fingerprint)`,
+              impact: +0.285,
+              direction: 'positive'
+            });
+          } else if (payload.device_trust_score > 0.85) {
+            shap.push({
+              feature: 'Device Hardware Trust',
+              value: `${payload.device_trust_score.toFixed(2)} (Hardware cryptographic cert)`,
+              impact: -0.194,
+              direction: 'negative'
+            });
+          }
+
+          if (payload.location_risk_score > 0.6) {
+            shap.push({
+              feature: 'Location / Routing Risk',
+              value: `${payload.location_risk_score.toFixed(2)} (Anomalous IP/ASN hop)`,
+              impact: +0.198,
+              direction: 'positive'
+            });
+          } else {
+            shap.push({
+              feature: 'Location / Routing Risk',
+              value: `${payload.location_risk_score.toFixed(2)} (Matched typical geolocation)`,
+              impact: -0.086,
+              direction: 'negative'
+            });
+          }
+
+          if (payload.velocity_1h >= 3) {
+            shap.push({
+              feature: 'Burst Velocity (1 Hour)',
+              value: `${payload.velocity_1h} transactions/hr`,
+              impact: +0.154,
+              direction: 'positive'
+            });
+          }
+
+          if (payload.merchant_category === 'crypto_exchange' || payload.merchant_category === 'money_transfer') {
+            shap.push({
+              feature: 'Merchant Category MCC',
+              value: payload.merchant_category,
+              impact: +0.112,
+              direction: 'positive'
+            });
+          } else if (payload.merchant_category === 'grocery_supermarket') {
+            shap.push({
+              feature: 'Merchant Category MCC',
+              value: payload.merchant_category,
+              impact: -0.064,
+              direction: 'negative'
+            });
+          }
+
+          if (payload.is_foreign_transaction === 1) {
+            shap.push({
+              feature: 'Cross-Border Transfer',
+              value: 'Yes (International rail)',
+              impact: +0.078,
+              direction: 'positive'
+            });
+          }
+
+          let summary = '';
+          if (verdict === 'BLOCKED') {
+            summary = `Transaction flagged due to extreme deviation from 30-day user average (${ratio.toFixed(1)}x increase) combined with untrusted device (${payload.device_trust_score.toFixed(2)}) and elevated location risk.`;
+          } else if (verdict === 'REVIEW') {
+            summary = `Elevated risk: burst velocity (${payload.velocity_1h} txns/hr) on channel ${payload.channel}. Secondary authorization recommended.`;
+          } else {
+            summary = `Nominal transaction: amount is strictly congruent with 30-day baseline (${ratio.toFixed(1)}x) from a trusted device signature.`;
+          }
+
+          return {
+            predict: {
+              fraud_probability: +(score).toFixed(4),
+              verdict: verdict,
+              recommendation: recommendation,
+              decision_threshold: threshold,
+              model_version: 'RandomForest_Candidate @champion',
+              inference_latency_ms: +(10.8 + Math.random() * 1.8).toFixed(1)
+            },
+            explain: {
+              plain_language_summary: summary,
+              shap_values: shap
+            },
+            is_mock: true
+          };
+        }
+
+        async function triggerEvaluation() {
+          const payload = getFormPayload();
+          lastPayload = payload;
+
+          btnEvaluate.disabled = true;
+          evalSpinner.classList.remove('hidden');
+          evalBtnLabel.textContent = 'Evaluating...';
+
+          let predictData = null;
+          let explainData = null;
+          let isLiveResponse = false;
+
+          try {
+            const [predRes, expRes] = await Promise.all([
+              fetch(`${apiBaseUrl}/predict`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(payload)
+              }),
+              fetch(`${apiBaseUrl}/explain`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(payload)
+              })
+            ]);
+
+            if (predRes.ok && expRes.ok) {
+              predictData = await predRes.json();
+              explainData = await expRes.json();
+              isLiveResponse = true;
+              isBackendLive = true;
+              apiHealthDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-xs';
+            }
+          } catch (networkErr) {
+            isBackendLive = false;
+          }
+
+          if (!predictData || !explainData) {
+            await new Promise(r => setTimeout(r, 40));
+            const simulated = computeEmulatedRisk(payload);
+            predictData = simulated.predict;
+            explainData = simulated.explain;
+            isLiveResponse = false;
+          }
+
+          renderResults(payload, predictData, explainData, isLiveResponse);
+
+          btnEvaluate.disabled = false;
+          evalSpinner.classList.add('hidden');
+          evalBtnLabel.textContent = 'Evaluate Risk';
+        }
+
+        function renderResults(payload, predict, explain, isLive) {
+          lastAssessment = { payload, predict, explain, isLive };
+
+          showEvaluatedState();
+
+          // Resilient probability extraction supporting 0-1 and 0-100 scales
+          let rawProb = 0.5;
+          if (typeof predict.fraud_probability === 'number') {
+            rawProb = predict.fraud_probability;
+          } else if (typeof predict.probability === 'number') {
+            rawProb = predict.probability;
+          } else if (predict.score !== undefined) {
+            rawProb = parseFloat(predict.score) || 0.5;
+          } else if (predict.risk_score !== undefined) {
+            rawProb = parseFloat(predict.risk_score) || 0.5;
+          }
+          if (rawProb > 1.0) rawProb = rawProb / 100.0;
+
+          const probPercent = (rawProb * 100).toFixed(1);
+          fraudProbabilityVal.textContent = `${probPercent}%`;
+
+          // Position Radar needle smoothly
+          const clampPercent = Math.max(2, Math.min(98, rawProb * 100));
+          radarNeedle.style.left = `${clampPercent}%`;
+
+          let verdict = (predict.verdict || predict.action || predict.decision || '').toUpperCase();
+          if (!verdict) {
+            verdict = rawProb >= 0.74 ? 'BLOCKED' : (rawProb >= 0.45 ? 'REVIEW' : 'APPROVED');
+          }
+
+          if (verdict.includes('BLOCK') || verdict.includes('DECLINE')) {
+            verdictBadge.textContent = 'BLOCKED';
+            verdictBadge.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold font-mono uppercase tracking-wider bg-rose-50 text-rose-800 border border-rose-200';
+          } else if (verdict.includes('REVIEW') || verdict.includes('STEP_UP') || verdict.includes('STEP-UP')) {
+            verdictBadge.textContent = 'STEP-UP / REVIEW';
+            verdictBadge.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold font-mono uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200';
+          } else {
+            verdictBadge.textContent = 'APPROVED';
+            verdictBadge.className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold font-mono uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200';
+          }
+
+          metaThreshold.textContent = (predict.decision_threshold !== undefined) ? predict.decision_threshold : '0.74';
+          metaRecommendation.textContent = predict.recommendation || (verdict === 'BLOCKED' ? 'BLOCK_TRANSACTION' : (verdict.includes('REVIEW') ? 'STEP_UP_AUTHENTICATION' : 'ALLOW_TRANSACTION'));
+          
+          const latency = predict.inference_latency_ms || 11.2;
+          metaLatency.textContent = `${parseFloat(latency).toFixed(1)} ms`;
+          metaModel.textContent = predict.model_version || 'RandomForest_Candidate @champion';
+          metaModel.title = predict.model_version || 'RandomForest_Candidate @champion';
+
+          const now = new Date();
+          evalTimestamp.textContent = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0') + ' UTC';
+          evalSourceBadge.textContent = isLive ? 'Live FastAPI :8000' : 'Model Emulation Engine';
+          evalSourceBadge.className = isLive ? 'text-emerald-700 font-medium' : 'text-slate-500';
+
+          const summary = explain.plain_language_summary || explain.summary || 'Transaction evaluated against calibrated random forest boundary.';
+          plainLanguageSummaryText.textContent = summary;
+
+          renderShapTable(explain);
+
+          rawJsonOutput.textContent = JSON.stringify({
+            request: payload,
+            response_predict: predict,
+            response_explain: explain,
+            evaluation_metadata: {
+              source: isLive ? 'fastapi_live_endpoint' : 'client_emulation_engine',
+              target_host: apiBaseUrl,
+              evaluated_at: now.toISOString()
+            }
+          }, null, 2);
+        }
+
+        function renderShapTable(explain) {
+          shapTableBody.innerHTML = '';
+          const rawItems = explain.top_risk_factors || explain.shap_values || explain.features || explain.factors || [];
+          
+          let items = [];
+          if (Array.isArray(rawItems)) {
+            items = rawItems;
+          } else if (typeof rawItems === 'object') {
+            items = Object.entries(rawItems).map(([k, v]) => ({
+              feature: k,
+              value: typeof v === 'object' ? JSON.stringify(v) : String(v),
+              impact: typeof v === 'number' ? v : 0.05
+            }));
+          }
+
+          if (items.length === 0) {
+            shapTableBody.innerHTML = `<tr><td colspan="4" class="py-3 px-3 text-center text-slate-400 font-mono text-[11px]">No SHAP attribution records returned.</td></tr>`;
+            return;
+          }
+
+          const maxImpact = Math.max(...items.map(it => Math.abs(typeof it.shap_value === 'number' ? it.shap_value : (parseFloat(it.impact) || 0.001))), 0.1);
+
+          items.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50/70 transition-colors';
+
+            const impactVal = (typeof item.shap_value === 'number') ? item.shap_value : (typeof item.impact_value === 'number' ? item.impact_value : (parseFloat(item.impact) || 0));
+            const isPositive = impactVal >= 0;
+            const formattedImpact = (isPositive ? '+' : '') + impactVal.toFixed(3);
+            const impactColorClass = isPositive ? 'text-rose-700' : 'text-emerald-700';
+            const barColorClass = isPositive ? 'bg-rose-500' : 'bg-emerald-500';
+            const barWidthPercent = Math.min(100, Math.max(6, (Math.abs(impactVal) / maxImpact) * 100));
+            const featureVal = item.value !== undefined ? String(item.value) : (item.feature_value !== undefined ? String(item.feature_value) : '—');
+
+            tr.innerHTML = `
+              <td class="py-2 px-3 font-medium text-slate-900">${escapeHtml(item.feature || 'Unknown')}</td>
+              <td class="py-2 px-3 font-mono text-slate-600 text-[11px]">${escapeHtml(featureVal)}</td>
+              <td class="py-2 px-3 text-right font-mono font-medium ${impactColorClass}">${formattedImpact}</td>
+              <td class="py-2 px-3">
+                <div class="w-full bg-slate-100 rounded-full h-1 overflow-hidden" title="Impact: ${formattedImpact}">
+                  <div class="${barColorClass} h-1 rounded-full transition-all duration-300" style="width: ${barWidthPercent}%"></div>
+                </div>
+              </td>
+            `;
+            shapTableBody.appendChild(tr);
+          });
+        }
+
+        function escapeHtml(str) {
+          return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+        }
+
+        riskForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          triggerEvaluation();
+        });
+
+        window.addEventListener('keydown', (e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            e.preventDefault();
+            triggerEvaluation();
+          }
+        });
+
+        btnCopySummary.addEventListener('click', () => {
+          if (!lastAssessment) return;
+          const { payload, predict, explain } = lastAssessment;
+          const text = [
+            `PAYGUARD RISK ASSESSMENT REPORT`,
+            `==============================`,
+            `User ID:       ${payload.user_id}`,
+            `Amount:        $${payload.amount.toFixed(2)} (${payload.channel})`,
+            `Decision:      ${predict.verdict || predict.action}`,
+            `Probability:   ${fraudProbabilityVal.textContent}`,
+            `Recommendation:${metaRecommendation.textContent}`,
+            `Threshold:     ${metaThreshold.textContent}`,
+            `Latency:       ${metaLatency.textContent}`,
+            `Model:         ${metaModel.textContent}`,
+            `Driver:        ${explain.plain_language_summary || explain.summary || ''}`
+          ].join('\n');
+
+          copyToClipboard(text).then(() => {
+            const originalText = btnCopySummary.textContent;
+            btnCopySummary.textContent = 'Copied!';
+            setTimeout(() => { btnCopySummary.textContent = originalText; }, 1800);
+          });
+        });
+
+        btnToggleRaw.addEventListener('click', () => {
+          rawJsonContainer.classList.toggle('hidden');
+          btnToggleRaw.textContent = rawJsonContainer.classList.contains('hidden') ? 'Inspect Raw JSON' : 'Hide Raw JSON';
+        });
+
+        btnCopyJson.addEventListener('click', () => {
+          if (!rawJsonOutput.textContent) return;
+          copyToClipboard(rawJsonOutput.textContent).then(() => {
+            btnCopyJson.textContent = 'Copied!';
+            setTimeout(() => { btnCopyJson.textContent = 'Copy JSON'; }, 1500);
+          });
+        });
+
+        // Initialize with default Anomalous scenario loaded right away
+        syncSliderLabels();
+        triggerEvaluation();
+
+      })();
+    </script>
+  </body>
+</html>

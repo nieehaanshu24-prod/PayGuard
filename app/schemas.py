@@ -44,6 +44,8 @@ class PredictionResponse(BaseModel):
     recommendation: str # APPROVE, STEP_UP_AUTHENTICATION_OTP, BLOCK_TRANSACTION
     decision_threshold: float
     latency_ms: float
+    inference_latency_ms: Optional[float] = None
+    verdict: Optional[str] = None # "BLOCKED", "STEP-UP / REVIEW", "APPROVED"
     model_name: str
     model_version: str
     timestamp: str
@@ -60,8 +62,10 @@ class BatchPredictionResponse(BaseModel):
 class FeatureAttribution(BaseModel):
     feature: str
     feature_value: Any
+    value: Optional[Any] = None # Alias for UI table
     shap_value: float
     impact: str # INCREASES_FRAUD_RISK or DECREASES_FRAUD_RISK
+    impact_value: Optional[float] = None
 
 
 class ExplanationResponse(BaseModel):
@@ -69,6 +73,7 @@ class ExplanationResponse(BaseModel):
     fraud_probability: float
     is_fraud: bool
     top_risk_factors: List[FeatureAttribution]
+    shap_values: Optional[List[Dict[str, Any]]] = None # Alias for UI table
     plain_language_summary: str
 
 

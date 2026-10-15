@@ -1,0 +1,6 @@
+{
+  "name": "PayGuard: Transaction Risk Assessment",
+  "description": "High-density B2B fintech risk evaluation console for real-time transaction scoring, decisioning, and SHAP feature attribution.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

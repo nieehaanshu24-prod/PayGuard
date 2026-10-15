@@ -9,6 +9,7 @@ import uuid
 import pandas as pd
 from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, status, Response
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
@@ -25,6 +26,10 @@ from app.metrics import (
 )
 from app.cloudwatch_logger import log_prediction, logger
 from src.drift import detect_feature_drift
+
+# Path to the uploaded Stripe Radar style UI
+UI_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "payguard-transaction-risk-assessment-UI"))
+UI_INDEX = os.path.join(UI_DIR, "index.html")
 
 # Initialize FastAPI application with comprehensive metadata for OpenAPI / AI Studio
 app = FastAPI(
@@ -51,6 +56,26 @@ prediction_cache = {}
 
 @app.get("/", tags=["General"])
 def root():
+    if os.path.exists(UI_INDEX):
+        return FileResponse(UI_INDEX)
+    return {
+        "service": "PayGuard Real-Time Digital Payment Fraud Detection",
+        "version": "1.0.0",
+        "documentation": "/docs",
+        "health": "/health",
+        "metrics": "/metrics"
+    }
+
+
+@app.get("/ui", include_in_schema=False)
+def serve_ui():
+    if os.path.exists(UI_INDEX):
+        return FileResponse(UI_INDEX)
+    raise HTTPException(status_code=404, detail="UI index.html not found.")
+
+
+@app.get("/api", tags=["General"])
+def api_info():
     return {
         "service": "PayGuard Real-Time Digital Payment Fraud Detection",
         "version": "1.0.0",
@@ -112,6 +137,7 @@ def predict_transaction(txn: TransactionInput):
         # Log structured event
         log_prediction(tx_id, is_fraud, prob, latency_ms, txn.user_id)
 
+        verdict = "BLOCKED" if is_fraud else ("STEP-UP / REVIEW" if prob >= 0.45 else "APPROVED")
         return PredictionResponse(
             transaction_id=tx_id,
             is_fraud=is_fraud,
@@ -120,6 +146,8 @@ def predict_transaction(txn: TransactionInput):
             recommendation=rec,
             decision_threshold=round(service.threshold, 4),
             latency_ms=round(latency_ms, 2),
+            inference_latency_ms=round(latency_ms, 2),
+            verdict=verdict,
             model_name=service.model_name,
             model_version=service.model_version,
             timestamp=now_str
