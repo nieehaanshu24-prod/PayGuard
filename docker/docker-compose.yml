@@ -66,6 +66,27 @@ services:
     networks:
       - payguard-net
 
+  airflow:
+    image: apache/airflow:2.8.1
+    container_name: payguard-airflow
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - _AIRFLOW_DB_MIGRATE=true
+    volumes:
+      - ../airflow/dags:/opt/airflow/dags:ro
+      - ../data:/opt/airflow/data
+      - ../src:/opt/airflow/src
+      - ../models:/opt/airflow/models
+      - ../config:/opt/airflow/config
+    ports:
+      - "8080:8080"
+    command: standalone
+    restart: unless-stopped
+    networks:
+      - payguard-net
+
 networks:
   payguard-net:
     driver: bridge

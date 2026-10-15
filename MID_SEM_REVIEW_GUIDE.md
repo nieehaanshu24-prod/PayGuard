@@ -92,9 +92,11 @@ PayGuard implements the exact 7 automated pipeline stages required by the course
 * **MLflow Tracking Server**: Running locally on port 5000 (`http://127.0.0.1:5000`) backed by SQLite `mlruns.db`. **No login required**.
 * **FastAPI Backend**: Running locally on port 8000 (`http://127.0.0.1:8000`). Interactive Swagger docs at `/docs`. **No login required**.
 * **Live Interactive Web UI**: Accessible directly at `http://127.0.0.1:8000/ui` with both hands-free real-time streaming and investigator sliders.
+* **Apache Airflow Webserver**: Running locally on port 8080 (`http://127.0.0.1:8080`) displaying the 7-stage DAG with a live "Trigger DAG" execution button and log streaming. **No login required**.
 
 ### Do You Need Any Logins or Accounts for Tomorrow?
 **NO.** Everything runs locally in **Standalone Zero-Authentication Mode**:
+* **Airflow Webserver**: Open `http://localhost:8080` (No login).
 * **FastAPI**: Open `http://localhost:8000/docs` (No login).
 * **MLflow**: Open `http://localhost:5000` (No login).
 * **Web UI**: Open `http://localhost:8000/ui` (No login).
