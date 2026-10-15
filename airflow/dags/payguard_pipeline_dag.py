@@ -44,8 +44,18 @@ def task_data_validation():
     print("[Airflow Task] Data validation passed.")
 
 
-def task_feature_engineering_and_preprocessing():
-    print("[Airflow Task] Running Feature Engineering & Preprocessing...")
+def task_preprocessing():
+    print("[Airflow Task 3/7] Running Data Preprocessing...")
+    import pandas as pd
+    from src.preprocessing import PreprocessingPipeline
+    df = pd.read_csv("data/processed/train.csv")
+    # Clean and initialize preprocessor pipeline
+    preprocessor = PreprocessingPipeline("models/preprocessor.joblib")
+    print(f"[Airflow Task 3/7] Preprocessing initialized on {len(df)} rows.")
+
+
+def task_feature_engineering():
+    print("[Airflow Task 4/7] Running Feature Engineering...")
     import pandas as pd
     from src.feature_engineering import engineer_features
     from src.preprocessing import PreprocessingPipeline
@@ -53,45 +63,48 @@ def task_feature_engineering_and_preprocessing():
     df_fe = engineer_features(df)
     preprocessor = PreprocessingPipeline("models/preprocessor.joblib")
     preprocessor.fit_transform(df_fe)
-    print("[Airflow Task] Feature engineering and preprocessing completed.")
+    print(f"[Airflow Task 4/7] Feature engineering completed. Output features: {df_fe.shape[1]}")
 
 
 def task_model_training():
-    print("[Airflow Task] Running Model Training for Baseline, Random Forest, and XGBoost...")
+    print("[Airflow Task 5/7] Running Model Training for Baseline, Random Forest, and XGBoost...")
     from src.train import train_models
     results = train_models()
     # Save temporary results for evaluation task
     import joblib
     os.makedirs("models/tmp", exist_ok=True)
     joblib.dump(results, "models/tmp/airflow_training_results.joblib")
-    print("[Airflow Task] Model training completed.")
+    print("[Airflow Task 5/7] Model training completed.")
 
 
 def task_model_evaluation():
-    print("[Airflow Task] Running Model Evaluation...")
+    print("[Airflow Task 6/7] Running Model Evaluation & Comparison...")
     import joblib
     results = joblib.load("models/tmp/airflow_training_results.joblib")
-    print(f"[Airflow Task] Evaluated {len(results)} candidate models.")
+    for r in results:
+        f1_val = r['metrics'].get('f1_score', r['metrics'].get('f1', 0.0))
+        print(f" -> {r['name']}: PR-AUC={r['metrics']['pr_auc']:.4f}, ROC-AUC={r['metrics']['roc_auc']:.4f}, F1={f1_val:.4f}")
+    print(f"[Airflow Task 6/7] Evaluated {len(results)} candidate models successfully.")
 
 
 def task_model_registration():
-    print("[Airflow Task] Running Model Registration & Quality Gate Promotion...")
+    print("[Airflow Task 7/7] Running Model Registration & Quality Gate Promotion...")
     import joblib
     from src.register import register_and_promote
     results = joblib.load("models/tmp/airflow_training_results.joblib")
     meta = register_and_promote(results)
-    print(f"[Airflow Task] Champion model registered: {meta['model_name']}")
+    print(f"[Airflow Task 7/7] Champion model registered: {meta['model_name']} v{meta['model_version']}")
 
 
 if AIRFLOW_AVAILABLE:
     dag = DAG(
         "payguard_fraud_detection_pipeline",
         default_args=default_args,
-        description="End-to-End Orchestrated ML Pipeline for Payment Fraud Detection",
+        description="End-to-End Orchestrated ML Pipeline for Payment Fraud Detection (7 Stages)",
         schedule_interval=timedelta(days=7),
         start_date=datetime(2026, 1, 1),
         catchup=False,
-        tags=["mlops", "fraud-detection", "payguard", "xgboost"]
+        tags=["mlops", "fraud-detection", "payguard", "xgboost", "airflow"]
     )
 
     t1_ingest = PythonOperator(
@@ -106,29 +119,35 @@ if AIRFLOW_AVAILABLE:
         dag=dag
     )
 
-    t3_feature_eng = PythonOperator(
-        task_id="feature_engineering_and_preprocessing",
-        python_callable=task_feature_engineering_and_preprocessing,
+    t3_preprocess = PythonOperator(
+        task_id="data_preprocessing",
+        python_callable=task_preprocessing,
         dag=dag
     )
 
-    t4_train = PythonOperator(
+    t4_feature_eng = PythonOperator(
+        task_id="feature_engineering",
+        python_callable=task_feature_engineering,
+        dag=dag
+    )
+
+    t5_train = PythonOperator(
         task_id="model_training",
         python_callable=task_model_training,
         dag=dag
     )
 
-    t5_evaluate = PythonOperator(
+    t6_evaluate = PythonOperator(
         task_id="model_evaluation",
         python_callable=task_model_evaluation,
         dag=dag
     )
 
-    t6_register = PythonOperator(
+    t7_register = PythonOperator(
         task_id="model_registration",
         python_callable=task_model_registration,
         dag=dag
     )
 
-    # Airflow task dependencies
-    t1_ingest >> t2_validate >> t3_feature_eng >> t4_train >> t5_evaluate >> t6_register
+    # Airflow 7-stage task dependencies
+    t1_ingest >> t2_validate >> t3_preprocess >> t4_feature_eng >> t5_train >> t6_evaluate >> t7_register

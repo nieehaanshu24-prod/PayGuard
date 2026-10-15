@@ -6,7 +6,7 @@ Emits structured JSON logs compatible with AWS CloudWatch Logs Insights.
 import os
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger("payguard")
 logger.setLevel(logging.INFO)
@@ -15,7 +15,7 @@ logger.setLevel(logging.INFO)
 class JsonFormatter(logging.Formatter):
     def format(self, record):
         log_obj = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "message": record.getMessage(),
             "logger": record.name,

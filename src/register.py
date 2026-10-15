@@ -8,7 +8,7 @@ import os
 import json
 import yaml
 import joblib
-from datetime import datetime
+from datetime import datetime, timezone
 import mlflow
 from mlflow.tracking import MlflowClient
 
@@ -63,7 +63,7 @@ def register_and_promote(results, config_path: str = "config/config.yaml"):
         "run_id": best["run_id"],
         "alias": alias_name,
         "optimal_threshold": float(best.get("threshold", 0.5)),
-        "registered_at": datetime.utcnow().isoformat(),
+        "registered_at": datetime.now(timezone.utc).isoformat(),
         "metrics": best["metrics"],
         "thresholds_enforced": {
             "min_pr_auc": min_pr_auc,

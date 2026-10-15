@@ -60,51 +60,43 @@ flowchart TD
 
 ## 🚀 One-Command Quick Start
 
-PayGuard supports both **Local Standalone Mode** (zero Docker friction on Windows) and **Docker Compose Mode**.
+PayGuard provides automated single-command bootstrappers for Linux, macOS, and Windows:
 
-### Option A: Local Standalone Setup (Recommended for Windows)
+### Single Command Execution
 
-1. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+* **Linux / macOS / WSL**:
+  ```bash
+  chmod +x setup.sh && ./setup.sh
+  ```
 
-2. **Generate datasets (v1.0 Baseline + v2.0 Drifted)**:
-   ```bash
-   python scripts/generate_dataset.py
-   ```
+* **Windows (PowerShell)**:
+  ```powershell
+  .\setup.ps1
+  ```
 
-3. **Execute full ML pipeline (Ingestion -> Multi-Model Train -> Register Champion)**:
-   ```bash
-   python scripts/run_pipeline.py
-   ```
+* **Windows (Command Prompt)**:
+  ```cmd
+  setup.bat
+  ```
 
-4. **Start the FastAPI real-time prediction service**:
-   ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-   ```
-   * Open Swagger Documentation: **[http://localhost:8000/docs](http://localhost:8000/docs)**
-   * Open Health Check: **[http://localhost:8000/health](http://localhost:8000/health)**
-   * Open Prometheus Metrics: **[http://localhost:8000/metrics](http://localhost:8000/metrics)**
+* **Docker Compose (Full Orchestrated Stack)**:
+  ```bash
+  docker compose up --build -d
+  ```
 
-5. **(Optional) Launch MLflow UI**:
-   ```bash
-   mlflow ui --backend-store-uri sqlite:///mlruns.db --port 5000
-   ```
-   * Open MLflow Dashboard: **[http://localhost:5000](http://localhost:5000)**
+The single command automatically installs dependencies, verifies DVC data, executes the 7-stage ML pipeline, passes all tests, benchmarks sub-30ms p95 latency, and starts the FastAPI service and Web UI.
 
 ---
 
-### Option B: Containerized Setup (Docker Compose)
+### Accessing Local Services
 
-Launch API, Prometheus, Grafana, and MLflow in orchestrated containers:
-```bash
-docker compose -f docker/docker-compose.yml up --build -d
-```
-* **FastAPI Service**: `http://localhost:8000/docs`
-* **Prometheus Dashboard**: `http://localhost:9090`
-* **Grafana Observability**: `http://localhost:3000` (User: `admin` / Password: `admin`)
-* **MLflow Tracking**: `http://localhost:5000`
+| Service | Local URL | Credentials / Notes |
+| :--- | :--- | :--- |
+| **PayGuard Live UI** | [http://127.0.0.1:8000/ui](http://127.0.0.1:8000/ui) | Hands-free real-time streaming & sandbox |
+| **FastAPI Swagger / OpenAPI** | [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) | Interactive API exploration |
+| **MLflow Experiment & Model Registry** | [http://127.0.0.1:5000](http://127.0.0.1:5000) | Lineage tracking & `@champion` model |
+| **Prometheus Metrics Exporter** | [http://127.0.0.1:8000/metrics](http://127.0.0.1:8000/metrics) | Scrape targets, latency histograms |
+| **Grafana Monitoring Dashboard** | [http://127.0.0.1:3000](http://127.0.0.1:3000) | User: `admin` / Password: `admin` |
 
 ---
 
@@ -245,26 +237,48 @@ PayGuard/
 
 ---
 
-## 📸 Final Submission Screenshot Checklist
+## 📸 Required Final Submission Deliverables & Evidence
 
-For your final course submission package, capture the following screens:
+All visual evidence and audit reports have been generated and included directly in this repository:
 
-1. **DVC Evidence**: Run `dvc status` in terminal to show data pipelines up-to-date.
-2. **MLflow Experiments & Registry**: Open `http://localhost:5000` showing the 3 model runs, metrics comparison, and the `@champion` model in the Model Registry.
-3. **Airflow DAG**: View `airflow/dags/payguard_pipeline_dag.py` or pipeline run output.
-4. **FastAPI Swagger / OpenAPI**: Open `http://localhost:8000/docs` showing interactive Swagger docs with `/predict` and `/explain`.
-5. **Prometheus / Grafana Monitoring**: Open `http://localhost:8000/metrics` or `http://localhost:3000` showing the monitoring dashboard.
-6. **Drift Evidence**: Run `python scripts/simulate_drift.py` showing the KS/PSI drift table.
-7. **GitHub Actions**: Push to GitHub to show the green CI/CD build checkmark.
+| Deliverable (PDF Page 4) | File / Artifact Path | Status / Preview |
+| :--- | :--- | :--- |
+| **DVC Metadata & Data-Version Evidence** | [`reports/DVC_EVIDENCE.md`](reports/DVC_EVIDENCE.md) | Verified checksums (`5f11dfda681424...`) & clean-machine repro |
+| **MLflow Experiment Lineage** | [`reports/plots/mlflow_experiments_screenshot.png`](reports/plots/mlflow_experiments_screenshot.png) | 3 models tracked (Baseline LR, RF, XGBoost) |
+| **MLflow Model Registry Champion** | [`reports/plots/mlflow_model_registry_screenshot.png`](reports/plots/mlflow_model_registry_screenshot.png) | `PayGuard_Fraud_Detection_Champion` `@champion` |
+| **Airflow DAG Source & Run** | [`airflow/dags/payguard_pipeline_dag.py`](airflow/dags/payguard_pipeline_dag.py)<br>[`reports/plots/airflow_dag_run_screenshot.png`](reports/plots/airflow_dag_run_screenshot.png) | 7-stage DAG with success status |
+| **FastAPI Swagger / OpenAPI** | [`reports/plots/fastapi_swagger_screenshot.png`](reports/plots/fastapi_swagger_screenshot.png) | Interactive OpenAPI spec at `/docs` |
+| **Real-Time Live Web UI** | [`reports/plots/payguard_ui_live_screenshot.png`](reports/plots/payguard_ui_live_screenshot.png) | Hands-free streaming ticker & SHAP attribution |
+| **Monitoring & Simulated Drift** | [`reports/plots/monitoring_drift_dashboard_screenshot.png`](reports/plots/monitoring_drift_dashboard_screenshot.png)<br>[`reports/DRIFT_EVIDENCE.md`](reports/DRIFT_EVIDENCE.md) | KS-test + PSI drift detection (5/7 breached) |
+| **Data Card & Model Card** | [`reports/DATA_CARD.md`](reports/DATA_CARD.md)<br>[`reports/MODEL_CARD.md`](reports/MODEL_CARD.md) | Comprehensive schemas, metrics & fairness |
+| **Responsible AI Statement** | [`reports/RESPONSIBLE_AI.md`](reports/RESPONSIBLE_AI.md) | SHAP math, demographic bias tests & ethics |
+| **Quantitative Performance Report** | [`reports/PERFORMANCE_REPORT.md`](reports/PERFORMANCE_REPORT.md) | PR-AUC (1.0), p95 (11.75ms), Throughput (109.8 RPS) |
+| **Dockerfile & Docker Compose** | [`Dockerfile`](Dockerfile)<br>[`docker-compose.yml`](docker-compose.yml) | Orchestrates API, Prometheus, Grafana, MLflow |
+| **GitHub Actions CI/CD** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Multi-stage automated validation & promotion |
+| **5-Minute Live Demonstration Pitch** | [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) | Step-by-step timed presenter script |
+| **Individual Viva Preparation** | [`VIVA_PREPARATION.md`](VIVA_PREPARATION.md) | Deep Q&A covering all 8 technical areas |
 
 ---
 
-## 📄 Submission Documentation Links
+## ☁️ AWS Cloud Extension (S3, SageMaker, CloudWatch)
 
-- **[Data Card](reports/DATA_CARD.md)**
-- **[Model Card](reports/MODEL_CARD.md)**
-- **[Responsible AI Statement](reports/RESPONSIBLE_AI.md)**
-- **[Performance Benchmark Report](reports/PERFORMANCE_REPORT.md)**
-- **[5-Minute Live Demo Pitch](DEMO_SCRIPT.md)**
-- **[Viva Q&A Cheat Sheet](VIVA_PREPARATION.md)**
-- **[AI Studio UI Guide](AI_STUDIO_UI_GUIDE.md)**
+PayGuard includes fully configured AWS cloud extension modules in `scripts/`:
+
+1. **AWS S3 Artifact & Dataset Synchronization**:
+   ```bash
+   python scripts/s3_storage_sync.py --dry-run
+   # Live AWS execution: python scripts/s3_storage_sync.py --dry-run=False --bucket <your-bucket>
+   ```
+2. **AWS SageMaker Model Deployment & Training Job**:
+   ```bash
+   python scripts/sagemaker_deploy.py --action both --dry-run
+   # Live AWS execution: python scripts/sagemaker_deploy.py --action both --dry-run=False
+   ```
+3. **AWS CloudWatch Structured Logging**:
+   - `app/cloudwatch_logger.py` emits structured JSON log events for every prediction with latency and risk metadata.
+4. **Cloud Teardown & Cost Control (AWS Budget Protection)**:
+   ```bash
+   python scripts/cloud_cleanup.py --dry-run
+   # Live AWS teardown: python scripts/cloud_cleanup.py --dry-run=False
+   ```
+   *Guarantees zero dangling cloud bills after demonstrations.*
