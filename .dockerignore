@@ -1,0 +1,15 @@
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+mlruns
+**/node_modules/
+payguard-transaction-risk-assessment-v2/node_modules/
+payguard-transaction-risk-assessment-UI/node_modules/
+.dockerignore
+Dockerfile*

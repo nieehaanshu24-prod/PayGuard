@@ -37,3 +37,5 @@ mlartifacts/
 Thumbs.db
 *.swp
 *.bak
+node_modules/
+**/node_modules/

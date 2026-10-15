@@ -88,34 +88,31 @@ In `scripts/generate_dataset.py`, we created two distinct mathematical behavior 
 
 # PART 3: WHAT THE WEB UI DOES
 
-The UI is built like an enterprise fintech product (inspired by **Stripe Radar** and Mercury Bank):
+The UI is built as an enterprise fintech console (PayGuard v2, built with React 19, TypeScript, Tailwind CSS, and Lucide icons), served directly from FastAPI at `http://localhost:8000/ui` (and `http://localhost:8000/`):
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ PayGuard - Real-Time Digital Payment Fraud Detection (Stripe Radar Style)   │
-├───────────────────────────────────┬─────────────────────────────────────────┤
-│ [LEFT PANEL: INVESTIGATOR SANDBOX]│ [RIGHT PANEL: REAL-TIME DECISION]       │
-│ • Sliders for Amount, Balance     │ • Big Risk Badge: [APPROVED] / [BLOCKED]│
-│ • Dropdowns for Channel, Merchant │ • Fraud Probability: 96.4%              │
-│ • Sliders for Device Trust & Loc  │ • Decision Threshold: 0.50              │
-│ • "Evaluate Transaction" button   │ • SHAP Feature Attribution Waterfall    │
-│   (Evaluates in ~11 ms)           │   (Shows why: +Device risk, +Amount)    │
-├───────────────────────────────────┴─────────────────────────────────────────┤
-│ [BOTTOM PANEL: LIVE TRANSACTION INGESTION FEED]                             │
-│ • "Start Live Stream" toggle (Auto-streams 1 transaction every 1.5s)        │
-│ • Audit Ticker Table: Time, TxID, User, Amount, Prob, Verdict, Latency      │
-│ • Counters: Total Processed (32) | Approved (28) | Blocked (4)              │
+│ PAYGUARD v2 ENTERPRISE RISK CONSOLE                                          │
+│ [Overview] [Live Stream] [Txn Analysis] [Explainability] [Drift] [Health]    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 1. Overview Dashboard: Executive KPI cards (Fraud Rate, Total Scored, Latency)
+│ 2. Live Streaming Ticker: Real-time incoming transactions scored in ~11 ms   │
+│ 3. Transaction Analysis: Investigator sandbox with sliders & instant verdict │
+│ 4. SHAP Explainability: Mathematical feature attribution waterfall & reasons │
+│ 5. Drift Monitoring: PSI & KS statistical drift tests & retraining triggers  │
+│ 6. Model Performance: Champion vs Challenger metrics & $23k Financial Matrix│
+│ 7. System Health: Live API status, container health, and model registry state│
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Investigator Sandbox (Left Side)**:
-   - For viva testing! If a professor says: *"What happens if a user spends \$4,000 on crypto with low device trust?"*
-   - You drag the Amount slider to \$4,000, pick `crypto_exchange`, set Device Trust to `0.05`, and click **Evaluate**.
-   - The screen instantly turns red with `BLOCKED`.
-2. **Real-Time Risk Decision (Right Side)**:
-   - Displays the verdict, fraud probability, and **TreeSHAP Explanations** showing the top 3 reasons why the model made that decision.
-3. **Live Transaction Ingestion Feed (Bottom Side)**:
-   - Click **"Start Live Stream"** and watch incoming transactions get scored continuously in real time.
+### The 7 Views You Can Click During The Review:
+1. **Overview Dashboard**: Top-line bank metrics: Total transactions processed, fraud detection rate (1.5%), average inference latency (**11.2 ms** vs 30ms SLA limit), and active model `RandomForest_Candidate @champion`.
+2. **Live Streaming Feed**: Click **"Live Stream"** $\to$ **"Start Stream"** to watch simulated incoming bank transactions scored every 1.5s with color-coded badges (`APPROVED`, `REVIEW`, `BLOCKED`).
+3. **Transaction Analysis (Investigator Sandbox)**: For viva testing! If a professor asks: *"What happens if a user spends \$5,000 on crypto with an unverified device?"*, change inputs, click **Evaluate**, and see the instant `BLOCKED` verdict.
+4. **SHAP Explainability**: Displays TreeSHAP waterfall charts explaining **why** the transaction was flagged (e.g., location risk +0.17, amount-to-average ratio +0.15).
+5. **Drift Monitoring**: Click **"Simulate Drift"** $\to$ the backend compares 3,000 baseline transactions against drifted traffic, displaying PSI $> 0.10$ and triggering retraining.
+6. **Model Performance**: Visualizes PR-AUC (1.00), Recall (1.00), Precision (0.92), and the **\$23,000.00 Net Savings** financial impact matrix.
+7. **System Health**: Shows live heartbeat status for FastAPI, loaded models, container uptime, and Prometheus metrics scraping.
 
 ---
 
@@ -235,13 +232,18 @@ Follow this exact walkthrough during your review:
 >
 > *We have built an end-to-end MLOps platform featuring DVC versioning, an Airflow 7-stage DAG, MLflow experiment tracking, FastAPI real-time serving, SHAP explainability, and Prometheus/Grafana drift monitoring."*
 
-### Step 2 (1:00 – 2:30): Live Real-Time UI Demo
-1. Open your browser to **`http://localhost:8000/ui`**.
-2. Click **"Start Live Stream"**.
-3. Show the table filling up:
-   > *"Notice that as transactions stream in, each transaction is scored in approximately **11 milliseconds**, well within our 30ms SLA. Legitimate transactions are approved in green, and high-risk attacks are blocked in red."*
-4. Click on a blocked transaction to show the SHAP attribution waterfall:
-   > *"Banks require explainability. Our TreeSHAP engine explains the exact factors: low device trust (+0.32 risk) and spending 10x the 30-day average (+0.28 risk) drove the probability to 96%."*
+### Step 2 (1:00 – 2:30): Live Real-Time v2 UI Demo
+1. Open your browser to **`http://localhost:8000/ui`** (or `http://localhost:8000`).
+2. Show the **Executive Dashboard**:
+   > *"Here is our live B2B fintech risk console. It tracks total processed transactions, fraud rate, and an average inference latency of **11.2 milliseconds**, comfortably beating our 30ms SLA."*
+3. Click **"Live Stream"** on the sidebar $\to$ Click **"Start Stream"**:
+   > *"This streams simulated live payment transactions. Each transaction is classified within milliseconds into APPROVED, REVIEW, or BLOCKED."*
+4. Click **"Transaction Analysis"**:
+   > *"This is our investigator sandbox. If a suspicious $3,500 international crypto transaction arrives with 0.10 device trust, we hit 'Evaluate Transaction' and get an instant red BLOCKED decision."*
+5. Click **"SHAP Explainability"**:
+   > *"Financial regulations require transparency. Our TreeSHAP engine attributes exact mathematical impact: high location risk (+0.17) and device trust mismatch drove the risk score."*
+6. Click **"Drift Monitoring"**:
+   > *"Here we monitor concept drift across our 7 features using Kolmogorov-Smirnov and Population Stability Index (PSI)."*
 
 ### Step 3 (2:30 – 3:30): Apache Airflow & MLflow
 1. Open **`http://localhost:8080`**:

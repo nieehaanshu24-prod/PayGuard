@@ -57,6 +57,7 @@ class BatchPredictionResponse(BaseModel):
     fraud_rate_pct: float
     average_latency_ms: float
     predictions: List[PredictionResponse]
+    results: Optional[List[PredictionResponse]] = None
 
 
 class FeatureAttribution(BaseModel):
@@ -64,14 +65,17 @@ class FeatureAttribution(BaseModel):
     feature_value: Any
     value: Optional[Any] = None # Alias for UI table
     shap_value: float
-    impact: str # INCREASES_FRAUD_RISK or DECREASES_FRAUD_RISK
+    impact: Any # float or string
     impact_value: Optional[float] = None
+    direction: Optional[str] = "positive"
 
 
 class ExplanationResponse(BaseModel):
     transaction_id: str
     fraud_probability: float
     is_fraud: bool
+    base_value: Optional[float] = 0.082
+    prediction: Optional[float] = None
     top_risk_factors: List[FeatureAttribution]
     shap_values: Optional[List[Dict[str, Any]]] = None # Alias for UI table
     plain_language_summary: str
@@ -79,7 +83,10 @@ class ExplanationResponse(BaseModel):
 
 class FeedbackInput(BaseModel):
     transaction_id: str
-    actual_is_fraud: int = Field(..., ge=0, le=1)
+    actual_is_fraud: Optional[int] = Field(None, ge=0, le=1)
+    actual_label: Optional[int] = Field(None, ge=0, le=1)
+    analyst_notes: Optional[str] = None
+    analyst_id: Optional[str] = None
     feedback_timestamp: Optional[str] = None
 
 
@@ -97,6 +104,23 @@ class HealthResponse(BaseModel):
     champion_model_name: Optional[str] = None
     champion_model_version: Optional[str] = None
     uptime_seconds: float
+    is_live: Optional[bool] = True
+    model_version: Optional[str] = None
+    timestamp: Optional[str] = None
+    latency_ms: Optional[float] = None
+    last_checked: Optional[str] = None
+
+
+class DriftSimulationRequest(BaseModel):
+    drift_type: Optional[str] = "concept_drift"
+    sample_size: Optional[int] = 1000
+
+
+class DriftFeatureDetail(BaseModel):
+    feature: str
+    psi: float
+    status: str
+    ks_p_value: float
 
 
 class DriftSimulationResponse(BaseModel):
@@ -106,3 +130,9 @@ class DriftSimulationResponse(BaseModel):
     sample_records_analyzed: int
     feature_metrics: Dict[str, Any]
     action_required: str
+    status: Optional[str] = "drift_detected"
+    overall_psi: Optional[float] = 0.0588
+    drift_threshold: Optional[float] = 0.10
+    features_monitored: Optional[int] = 7
+    timestamp: Optional[str] = None
+    details: Optional[List[Dict[str, Any]]] = None

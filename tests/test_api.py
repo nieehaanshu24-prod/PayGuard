@@ -114,3 +114,53 @@ def test_drift_simulation_endpoint():
     data = response.json()
     assert "overall_dataset_drift" in data
     assert "feature_metrics" in data
+
+
+def test_v2_drift_simulation_json_body():
+    response = client.post("/drift/simulate", json={"drift_type": "concept_drift", "sample_size": 250})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] in ["drift_detected", "nominal"]
+    assert "details" in data
+    assert len(data["details"]) > 0
+    assert "overall_psi" in data
+
+
+def test_v2_batch_prediction_and_results(legitimate_transaction_payload, fraudulent_transaction_payload):
+    response = client.post("/predict/batch", json={"transactions": [legitimate_transaction_payload, fraudulent_transaction_payload]})
+    assert response.status_code == 200
+    data = response.json()
+    assert "results" in data
+    assert len(data["results"]) == 2
+    assert "verdict" in data["results"][0]
+
+
+def test_v2_explain_shap_values(fraudulent_transaction_payload):
+    response = client.post("/explain", json=fraudulent_transaction_payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "shap_values" in data
+    assert len(data["shap_values"]) > 0
+    first_shap = data["shap_values"][0]
+    assert "feature" in first_shap
+    assert "impact" in first_shap
+    assert "direction" in first_shap
+
+
+def test_v2_feedback_actual_label():
+    payload = {
+        "transaction_id": "TXN_ANALYST_01",
+        "actual_label": 1,
+        "analyst_notes": "Confirmed chargeback received",
+        "analyst_id": "ANALYST_42"
+    }
+    response = client.post("/feedback", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+
+
+def test_ui_root_serving():
+    response = client.get("/")
+    assert response.status_code == 200
+

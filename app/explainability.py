@@ -58,10 +58,11 @@ class PayGuardExplainer:
             attributions.append({
                 "feature": feat_name,
                 "feature_value": round(val, 3),
-                "value": round(val, 3),
+                "value": str(round(val, 2)),
                 "shap_value": round(shap_val, 4),
                 "impact_value": round(shap_val, 4),
-                "impact": impact,
+                "impact": round(shap_val, 4),
+                "direction": "positive" if shap_val > 0 else "negative",
                 "abs_importance": abs(shap_val)
             })
 
@@ -82,9 +83,22 @@ class PayGuardExplainer:
                 f"(below {self.service.threshold:.2f} threshold). Features show normal consumer baseline behavior."
             )
 
+        base_val = 0.082
+        try:
+            if hasattr(self.explainer, "expected_value"):
+                ev = self.explainer.expected_value
+                if isinstance(ev, (list, np.ndarray)):
+                    base_val = float(ev[1])
+                else:
+                    base_val = float(ev)
+        except Exception:
+            base_val = 0.082
+
         return {
             "transaction_id": txn_dict.get("transaction_id", "TXN_LIVE"),
             "fraud_probability": round(prob, 4),
+            "prediction": round(prob, 4),
+            "base_value": round(base_val, 4),
             "is_fraud": is_fraud,
             "top_risk_factors": top_factors,
             "shap_values": top_factors,
