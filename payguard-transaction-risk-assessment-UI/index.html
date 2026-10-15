@@ -188,6 +188,10 @@
             <button id="presetAnomalous" type="button" class="text-xs text-slate-900 bg-slate-100 hover:bg-slate-200/80 border border-slate-300 px-2.5 py-1 rounded transition-colors text-left font-medium cursor-pointer">
               Preset: Anomalous Midnight Transfer <span class="text-slate-600 font-mono font-normal">(Credit Card · $2,850.00)</span>
             </button>
+            <button id="btnToggleLiveStream" type="button" class="text-xs text-slate-800 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-300 px-3 py-1 rounded transition-all font-medium inline-flex items-center gap-1.5 cursor-pointer shadow-xs ml-1">
+              <span id="streamIndicatorDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+              <span id="streamButtonText">Start Real-Time Stream</span>
+            </button>
           </div>
         </div>
 
@@ -525,6 +529,47 @@
         </div>
 
       </div>
+
+      <!-- Real-Time Transaction Stream Activity Feed -->
+      <section class="bg-white border border-slate-200 rounded-md p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <h2 class="text-xs font-semibold tracking-tight uppercase text-slate-900">Live Transaction Ingestion Feed (Sub-15ms Real-Time Audit Log)</h2>
+          </div>
+          <div class="flex items-center gap-3 text-xs font-mono text-slate-500">
+            <span>Streamed: <strong id="streamCount" class="text-slate-900">0</strong></span>
+            <span>·</span>
+            <span>Approved: <strong id="streamApprovedCount" class="text-emerald-700">0</strong></span>
+            <span>·</span>
+            <span>Blocked: <strong id="streamBlockedCount" class="text-rose-700">0</strong></span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-400 font-mono text-[10px] uppercase">
+                <th class="py-2 px-3">Time</th>
+                <th class="py-2 px-3">Tx ID</th>
+                <th class="py-2 px-3">Cardholder</th>
+                <th class="py-2 px-3">Channel / MCC</th>
+                <th class="py-2 px-3 text-right">Amount</th>
+                <th class="py-2 px-3 text-right">Fraud Score</th>
+                <th class="py-2 px-3 text-center">Verdict</th>
+                <th class="py-2 px-3 text-right">Latency</th>
+              </tr>
+            </thead>
+            <tbody id="streamTableBody" class="divide-y divide-slate-100 font-mono text-[11px]">
+              <tr id="streamEmptyRow">
+                <td colspan="8" class="py-4 text-center text-slate-400 font-sans text-xs">
+                  Click "Start Real-Time Stream" or test a scenario above to see incoming transaction telemetry.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
     </main>
 
@@ -1211,6 +1256,127 @@
             btnCopyJson.textContent = 'Copied!';
             setTimeout(() => { btnCopyJson.textContent = 'Copy JSON'; }, 1500);
           });
+        });
+
+        // ==========================================
+        // Live Real-Time Ingestion Streaming Engine
+        // ==========================================
+        const btnToggleLiveStream = document.getElementById('btnToggleLiveStream');
+        const streamIndicatorDot = document.getElementById('streamIndicatorDot');
+        const streamButtonText = document.getElementById('streamButtonText');
+        const streamCount = document.getElementById('streamCount');
+        const streamApprovedCount = document.getElementById('streamApprovedCount');
+        const streamBlockedCount = document.getElementById('streamBlockedCount');
+        const streamTableBody = document.getElementById('streamTableBody');
+        const streamEmptyRow = document.getElementById('streamEmptyRow');
+
+        let isStreaming = false;
+        let streamTimer = null;
+        let streamedTotal = 0;
+        let streamedApproved = 0;
+        let streamedBlocked = 0;
+
+        const STREAM_POOL = [
+          // Authentic consumer transactions
+          { user_id: 'USR_0412', amount: 32.50, old_balance: 1450.0, new_balance: 1417.5, user_avg: 45.0, channel: 'UPI', merchant: 'grocery_supermarket', is_foreign: 0, device: 0.94, loc: 0.08, v1h: 0, v24h: 1 },
+          { user_id: 'USR_0892', amount: 15.00, old_balance: 520.0, new_balance: 505.0, user_avg: 25.0, channel: 'DEBIT_CARD', merchant: 'dining', is_foreign: 0, device: 0.92, loc: 0.05, v1h: 1, v24h: 2 },
+          { user_id: 'USR_0143', amount: 89.90, old_balance: 3100.0, new_balance: 3010.1, user_avg: 95.0, channel: 'CREDIT_CARD', merchant: 'electronics_retail', is_foreign: 0, device: 0.88, loc: 0.12, v1h: 1, v24h: 3 },
+          { user_id: 'USR_0671', amount: 4.50, old_balance: 240.0, new_balance: 235.5, user_avg: 12.0, channel: 'UPI', merchant: 'grocery_supermarket', is_foreign: 0, device: 0.97, loc: 0.02, v1h: 0, v24h: 1 },
+          { user_id: 'USR_0290', amount: 120.00, old_balance: 8500.0, new_balance: 8380.0, user_avg: 110.0, channel: 'NET_BANKING', merchant: 'utilities', is_foreign: 0, device: 0.91, loc: 0.06, v1h: 0, v24h: 1 },
+          { user_id: 'USR_0754', amount: 55.00, old_balance: 1200.0, new_balance: 1145.0, user_avg: 60.0, channel: 'WALLET', merchant: 'retail', is_foreign: 0, device: 0.89, loc: 0.15, v1h: 2, v24h: 4 },
+          // Sudden fraud attack scenarios
+          { user_id: 'USR_0100', amount: 3150.00, old_balance: 3800.0, new_balance: 650.0, user_avg: 50.0, channel: 'CREDIT_CARD', merchant: 'crypto_exchange', is_foreign: 1, device: 0.06, loc: 0.95, v1h: 7, v24h: 11 },
+          { user_id: 'USR_0512', amount: 4800.00, old_balance: 5000.0, new_balance: 200.0, user_avg: 70.0, channel: 'CREDIT_CARD', merchant: 'luxury_goods', is_foreign: 1, device: 0.04, loc: 0.98, v1h: 5, v24h: 8 },
+          { user_id: 'USR_0331', amount: 2600.00, old_balance: 3200.0, new_balance: 600.0, user_avg: 40.0, channel: 'UPI', merchant: 'gambling_gaming', is_foreign: 0, device: 0.12, loc: 0.88, v1h: 6, v24h: 9 }
+        ];
+
+        function applyPayloadToForm(tx) {
+          document.getElementById('userId').value = tx.user_id;
+          document.getElementById('amount').value = tx.amount.toFixed(2);
+          document.getElementById('oldBalance').value = tx.old_balance.toFixed(2);
+          document.getElementById('newBalance').value = tx.new_balance.toFixed(2);
+          document.getElementById('userAvgAmount30d').value = tx.user_avg.toFixed(2);
+          document.getElementById('channel').value = tx.channel;
+          document.getElementById('merchantCategory').value = tx.merchant;
+          isForeignTransaction.checked = tx.is_foreign === 1;
+          crossBorderStatusText.textContent = tx.is_foreign === 1 ? 'Yes (1)' : 'No (0)';
+          deviceTrustScore.value = tx.device.toFixed(2);
+          locationRiskScore.value = tx.loc.toFixed(2);
+          document.getElementById('velocity1h').value = tx.v1h;
+          document.getElementById('velocity24h').value = tx.v24h;
+          syncSliderLabels();
+          const autoId = `TXN_${tx.user_id.replace('USR_', '')}_${Math.floor(1000 + Math.random() * 9000)}`;
+          document.getElementById('txIdDisplay').textContent = autoId;
+        }
+
+        function appendStreamRow(payload, predict, latencyMs) {
+          if (streamEmptyRow && streamEmptyRow.parentNode) streamEmptyRow.remove();
+
+          const now = new Date();
+          const timeStr = now.toTimeString().split(' ')[0];
+          const isFraud = predict.is_fraud || (predict.verdict === 'BLOCKED');
+          const prob = ((predict.fraud_probability || 0.0) * 100).toFixed(1);
+          const verdictBadge = isFraud
+            ? '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold font-mono uppercase bg-rose-50 text-rose-800 border border-rose-200">BLOCKED</span>'
+            : '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold font-mono uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">APPROVED</span>';
+          const rowBg = isFraud ? 'bg-rose-50/50 hover:bg-rose-50' : 'hover:bg-slate-50/70';
+
+          const tr = document.createElement('tr');
+          tr.className = `${rowBg} transition-colors`;
+          tr.innerHTML = `
+            <td class="py-2 px-3 text-slate-500 font-mono">${timeStr}</td>
+            <td class="py-2 px-3 font-mono font-medium text-slate-900">${document.getElementById('txIdDisplay').textContent}</td>
+            <td class="py-2 px-3 text-slate-700 font-mono">${payload.user_id}</td>
+            <td class="py-2 px-3 text-slate-600">${payload.channel} · <span class="font-mono text-[10px]">${payload.merchant_category}</span></td>
+            <td class="py-2 px-3 text-right font-mono font-medium text-slate-900">$${payload.amount.toFixed(2)}</td>
+            <td class="py-2 px-3 text-right font-mono ${isFraud ? 'text-rose-700 font-bold' : 'text-slate-600'}">${prob}%</td>
+            <td class="py-2 px-3 text-center">${verdictBadge}</td>
+            <td class="py-2 px-3 text-right font-mono text-slate-500">${parseFloat(latencyMs).toFixed(1)} ms</td>
+          `;
+
+          streamTableBody.insertBefore(tr, streamTableBody.firstChild);
+
+          // Keep table length bounded to last 15 rows
+          while (streamTableBody.children.length > 15) {
+            streamTableBody.removeChild(streamTableBody.lastChild);
+          }
+
+          streamedTotal++;
+          if (isFraud) streamedBlocked++; else streamedApproved++;
+          streamCount.textContent = streamedTotal;
+          streamApprovedCount.textContent = streamedApproved;
+          streamBlockedCount.textContent = streamedBlocked;
+        }
+
+        async function streamNextTransaction() {
+          const isAttack = Math.random() < 0.15;
+          const poolSubset = isAttack ? STREAM_POOL.slice(6) : STREAM_POOL.slice(0, 6);
+          const tx = poolSubset[Math.floor(Math.random() * poolSubset.length)];
+          applyPayloadToForm(tx);
+          const t0 = performance.now();
+          await triggerEvaluation();
+          const lat = (performance.now() - t0);
+          if (lastAssessment) {
+            appendStreamRow(lastAssessment.payload, lastAssessment.predict, lastAssessment.predict.latency_ms || lat);
+          }
+        }
+
+        btnToggleLiveStream.addEventListener('click', () => {
+          if (!isStreaming) {
+            isStreaming = true;
+            streamIndicatorDot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+            streamButtonText.textContent = 'Pause Real-Time Stream';
+            btnToggleLiveStream.className = 'text-xs text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1 rounded transition-all font-medium inline-flex items-center gap-1.5 cursor-pointer shadow-xs ml-1';
+            streamNextTransaction();
+            streamTimer = setInterval(streamNextTransaction, 1500);
+          } else {
+            isStreaming = false;
+            clearInterval(streamTimer);
+            streamTimer = null;
+            streamIndicatorDot.className = 'w-2 h-2 rounded-full bg-slate-400';
+            streamButtonText.textContent = 'Resume Real-Time Stream';
+            btnToggleLiveStream.className = 'text-xs text-slate-800 hover:text-slate-950 bg-white hover:bg-slate-50 border border-slate-300 px-3 py-1 rounded transition-all font-medium inline-flex items-center gap-1.5 cursor-pointer shadow-xs ml-1';
+          }
         });
 
         // Initialize with default Anomalous scenario loaded right away
