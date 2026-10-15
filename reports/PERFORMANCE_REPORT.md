@@ -84,3 +84,16 @@ Measured between baseline reference dataset and production drifted stream via `s
 
 - **Overall Dataset Drift Status**: `DRIFT DETECTED` (5 of 7 features breached statistical thresholds).
 - **Triggered Action**: Automated Retraining Pipeline alert signaled to Prometheus and Airflow.
+
+---
+
+## 6. Automated Validation Suite & Web Interface Performance
+
+- **Automated Pytest Suite**: 22 unit & integration tests passing (`tests/test_api.py`, `tests/test_preprocessing.py`, `tests/test_model_quality.py`).
+- **Dynamic Governance & Dataset Endpoints**:
+  - `GET /model/metadata`: Serves real MLflow run ID (`c8ca335a646d...`), optimal threshold (0.740), confusion matrix, and financial savings.
+  - `GET /model/feature-importance`: Computes Gini feature importances directly from `RandomForestClassifier.feature_importances_`.
+  - `GET /transactions/sample`: Scores authentic transactions sampled directly from the 15,000-row DVC dataset with TreeSHAP explanations.
+  - `GET /transactions/stream-next`: Real-time sequential stream ingest with microsecond latency calculation.
+- **Enterprise Web UI**: Pre-compiled React 19 + TypeScript console served directly from FastAPI at `http://localhost:8000/ui`.
+

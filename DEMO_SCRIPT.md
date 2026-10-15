@@ -45,7 +45,9 @@ Use this exact chronological walkthrough during your live project presentation t
 > Crucially, for banking compliance, we don't just return a score. Calling our `/explain` endpoint gives exact SHAP feature attributions explaining that abnormal velocity and amount ratios drove the block decision."*
 
 **What to Show**:
-- FastAPI Swagger UI at `http://localhost:8000/docs` executing `/predict` and `/explain` (or your AI Studio UI / Streamlit fallback at `http://localhost:8501`).
+- Open the **PayGuard v2 Enterprise Risk Console** at `http://localhost:8000/ui` (and Swagger at `http://localhost:8000/docs`).
+- Demonstrate the **Live Streaming View** with real-time incoming transactions scored in ~11ms.
+- Switch to the **Transaction Analysis Sandbox** and **SHAP Explainability** view to show the exact mathematical waterfall chart.
 
 ---
 
@@ -73,4 +75,4 @@ Use this exact chronological walkthrough during your live project presentation t
 
 **What to Show**:
 - Show `reports/PERFORMANCE_REPORT.md` summary table.
-- Show passing pytest / GitHub Actions workflow status.
+- Show passing 22-test automated suite (`pytest -v`) and GitHub Actions workflow status.

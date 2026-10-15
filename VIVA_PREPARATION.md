@@ -68,17 +68,18 @@ Comprehensive technical questions and bullet-point model answers for your viva e
 
 ### Q8: What components does your Docker Compose orchestrate?
 * **Answer**:
-  - 1. `payguard-api`: FastAPI REST prediction engine with healthcheck (`:8000`).
-  - 2. `prometheus`: Scrapes `/metrics` every 5 seconds to record latencies, RPS, and drift gauges (`:9090`).
-  - 3. `grafana`: Pre-provisioned dashboards visualizing p95 latency, throughput, and PSI metrics (`:3000`).
-  - 4. `mlflow`: Central server tracking experiment parameters, metrics, artifacts, and registered models (`:5000`).
+  - 1. `payguard-api`: FastAPI REST prediction engine with healthcheck & v2 React UI (`:8000`).
+  - 2. `payguard-airflow`: Workflow orchestrator managing the 7-stage automated retraining pipeline (`:8080`).
+  - 3. `payguard-prometheus`: Scrapes `/metrics` every 5 seconds to record latencies, RPS, and drift gauges (`:9090`).
+  - 4. `payguard-grafana`: Pre-provisioned dashboards visualizing p95 latency, throughput, and PSI metrics (`:3000`).
+  - 5. `payguard-mlflow`: Central server tracking experiment parameters, metrics, artifacts, and registered models (`:5000`).
 
 ---
 
 ### Q9: How do you handle Delayed Ground Truth Feedback?
 * **Answer**:
   - In fraud detection, real labels are delayed by days or weeks (when cardholders report unauthorized charges).
-  - PayGuard provides `POST /feedback` where payment settlement feeds submit actual outcomes (`actual_is_fraud: 1/0`).
+  - PayGuard provides `POST /feedback` where payment settlement feeds submit actual outcomes (`actual_label` / `actual_is_fraud: 1/0`).
   - The API matches the cached prediction against the actual label and increments Prometheus counters (`true_positive`, `false_positive`, `false_negative`, `true_negative`) to track live precision and recall decay over time.
 
 ---
@@ -86,8 +87,18 @@ Comprehensive technical questions and bullet-point model answers for your viva e
 ### Q10: What checks are performed in your GitHub Actions CI/CD workflow?
 * **Answer**:
   - 1. Automated dataset generation and pipeline execution.
-  - 2. Preprocessing & feature engineering unit tests (`test_preprocessing.py`).
-  - 3. API endpoint integration tests (`test_api.py`).
-  - 4. Model quality threshold enforcement test (`test_model_quality.py`).
+  - 2. 22-test automated unit and integration suite (`tests/test_api.py`, `test_preprocessing.py`, `test_model_quality.py`).
+  - 3. API endpoint integration tests including TreeSHAP and drift simulation.
+  - 4. Model quality threshold enforcement test ($\text{PR-AUC} \ge 0.70$, $\text{Recall} \ge 0.75$).
   - 5. Real-time sub-30ms latency benchmark validation (`benchmark_latency.py`).
   - 6. Docker container image build and healthcheck verification.
+
+---
+
+### Q11: How is the PayGuard v2 Web UI integrated and how does it avoid hardcoding?
+* **Answer**:
+  - The v2 UI is built in React 19, TypeScript, and Tailwind CSS, pre-compiled and served directly from FastAPI at `http://localhost:8000/ui`.
+  - **No hardcoded statistics**: The console dynamically queries `/model/metadata` for real MLflow Run IDs, optimal thresholds, and test confusion matrices ($46$ TPs, $2,954$ TNs, \$23k net savings).
+  - **Real Model Importances**: The `/model/feature-importance` endpoint extracts actual Gini importances directly from `RandomForestClassifier.feature_importances_`.
+  - **Live Dataset Streaming**: The `/transactions/stream-next` and `/transactions/sample` endpoints stream authentic bank records directly from the 15,000-row DVC dataset, running each transaction through live model inference and TreeSHAP waterfall calculation.
+

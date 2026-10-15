@@ -53,7 +53,7 @@ VITE_API_BASE_URL="http://localhost:8000"
 Ensure your Python virtual environment is activated and start the FastAPI service:
 ```bash
 # Start FastAPI daemon
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 Verify backend health:
@@ -72,7 +72,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Step 3: Run the Real-Time Streaming Traffic Simulator
 Stream synthetic payment traffic into the running FastAPI daemon:
 ```bash
-python scripts/stream_traffic.py --api-url http://localhost:8000 --rate 2 --file data/test_stream.csv
+python scripts/stream_transactions.py --api-url http://localhost:8000 --rate 2
 ```
 *You can also use the integrated browser-based stream controls directly in the "Live Transactions" tab.*
 

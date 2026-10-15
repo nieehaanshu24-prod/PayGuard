@@ -53,4 +53,4 @@ When a suspicious transaction is flagged by PayGuard:
 ## 4. Privacy & Regulatory Compliance
 
 - **PCI-DSS Compliance**: No raw primary account numbers (PAN), CVVs, or bank account credentials are ingested by the model. Identifiers are cryptographically hashed tokens (`USR_XXXX`, `TXN_XXXX`).
-- **Human-in-the-Loop Architecture**: For borderline risk scores ($0.50 \le P < 0.80$), PayGuard does not autonomously deny service. Instead, it triggers automated Step-Up Authentication (OTP/biometric challenge), ensuring customers retain self-service fallback.
+- **Human-in-the-Loop Architecture**: For borderline risk scores ($0.45 \le P < 0.74$), PayGuard does not autonomously deny service. Instead, it triggers automated Step-Up Authentication (`REVIEW`), ensuring customers retain self-service fallback before critical hard-blocks ($P \ge 0.74$).

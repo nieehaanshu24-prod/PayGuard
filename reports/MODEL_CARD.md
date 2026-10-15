@@ -19,9 +19,10 @@ Following the Mitchell et al. *Model Cards for Model Reporting* standard.
 
 - **Primary Application**: Real-time scoring of incoming digital payment transactions prior to clearing and settlement.
 - **Decision Workflow**:
-  - Probability $< 0.50$ (`LOW RISK`): Transaction auto-approved.
-  - Probability $0.50 - 0.79$ (`MEDIUM RISK`): Step-up authentication challenge (OTP / Biometric prompt).
-  - Probability $\ge 0.80$ (`HIGH RISK`): Transaction blocked, card temporarily frozen, alerted to anti-fraud operations.
+  - Probability $< 0.45$ (`LOW RISK`): Transaction auto-approved (`APPROVED`).
+  - Probability $0.45 - 0.73$ (`MEDIUM RISK`): Step-up authentication challenge (OTP / Biometric prompt `REVIEW`).
+  - Probability $\ge 0.74$ (`HIGH RISK`): Transaction blocked, card temporarily frozen, alerted to anti-fraud operations (`BLOCKED`).
+- **Optimal Decision Threshold**: Calibrated at `0.740` based on cost-utility optimization.
 - **Out-of-Scope Uses**: Long-term credit underwriting, consumer credit scoring, or loan default prediction.
 
 ---

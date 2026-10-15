@@ -117,12 +117,12 @@ Measured over 1,000 requests using [`scripts/benchmark_latency.py`](scripts/benc
 
 ## 🧪 Running Automated Tests
 
-Run the complete test suite covering unit tests, API integration tests, and model quality promotion gates:
+Run the complete test suite covering 22 unit tests, API integration tests, real data endpoints, and model quality promotion gates:
 ```bash
 pytest -v
 ```
 
-Run latency and throughput benchmark:
+Run latency and throughput benchmark (1,000 requests):
 ```bash
 python scripts/benchmark_latency.py
 ```
@@ -134,50 +134,37 @@ python scripts/simulate_drift.py
 
 ---
 
-## 📡 API Usage & Test Payloads
+## 📡 Live REST API Endpoints
 
-### 1. Real-Time Fraud Scoring (`POST /predict`)
-```bash
-curl -X POST "http://localhost:8000/predict" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "USR_0100",
-    "amount": 2850.00,
-    "old_balance": 4000.00,
-    "new_balance": 1150.00,
-    "user_avg_amount_30d": 50.00,
-    "channel": "CREDIT_CARD",
-    "merchant_category": "crypto_exchange",
-    "is_foreign_transaction": 1,
-    "device_trust_score": 0.08,
-    "location_risk_score": 0.92,
-    "velocity_1h": 6,
-    "velocity_24h": 9
-  }'
-```
+PayGuard exposes a complete banking-grade REST API documented interactively at `http://localhost:8000/docs`:
 
-**Response**:
-```json
-{
-  "transaction_id": "TXN_7E92A10F",
-  "is_fraud": true,
-  "fraud_probability": 0.964,
-  "risk_level": "HIGH",
-  "recommendation": "BLOCK_TRANSACTION",
-  "decision_threshold": 0.74,
-  "latency_ms": 11.2,
-  "model_name": "RandomForest_Candidate",
-  "model_version": "1"
-}
-```
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/predict` | Real-time single transaction fraud scoring with sub-12ms latency |
+| `POST` | `/predict/batch` | High-throughput concurrent multi-transaction batch scoring |
+| `POST` | `/explain` | TreeSHAP log-odds feature attribution waterfall & analyst summary |
+| `POST` | `/feedback` | Ground-truth delayed settlement feedback loop ingest (TP/FP/TN/FN) |
+| `POST` | `/drift/simulate` | Statistical covariate drift analysis (KS-test + PSI) across 7 features |
+| `GET` | `/model/metadata` | Live MLflow champion model governance metadata, run ID, and financial matrix |
+| `GET` | `/model/feature-importance` | Dynamic Gini feature importances computed directly from the champion model |
+| `GET` | `/transactions/sample` | Authentic scored transactions sampled directly from the 15,000-row DVC dataset |
+| `GET` | `/transactions/stream-next`| Next live sequential transaction for real-time streaming tickers |
+| `GET` | `/health` | Live system health probe, model loaded status, and measured microsecond latency |
+| `GET` | `/metrics` | Prometheus OpenMetrics scrape target (RPS, p95 latency, fraud distribution) |
+| `GET` | `/ui` | Serves the PayGuard v2 React 19 Enterprise Fintech Risk Console |
 
-### 2. SHAP Explainability (`POST /explain`)
-Returns mathematical Shapley feature attributions and an analyst summary explaining why the transaction was flagged:
-```bash
-curl -X POST "http://localhost:8000/explain" \
-  -H "Content-Type: application/json" \
-  -d '{ ...same payload... }'
-```
+---
+
+## 🎛️ Controlling Services
+
+* **Start All 5 Services in Background**:
+  ```bash
+  docker compose up -d
+  ```
+* **Stop All Services & Clean Up**:
+  ```bash
+  docker compose down
+  ```
 
 ---
 
@@ -188,21 +175,26 @@ PayGuard/
 ├── .github/workflows/ci.yml           # Multi-stage GitHub Actions CI/CD pipeline
 ├── airflow/dags/payguard_pipeline_dag.py # Apache Airflow 7-stage DAG
 ├── app/
-│   ├── main.py                        # FastAPI REST prediction service
-│   ├── schemas.py                     # Pydantic v2 validation models
-│   ├── model_loader.py                # Sub-15ms champion model loader
-│   ├── explainability.py              # SHAP TreeExplainer integration
-│   ├── metrics.py                     # Prometheus exporter metrics
+│   ├── main.py                        # FastAPI REST prediction service & static bundle mount
+│   ├── schemas.py                     # Pydantic v2 validation models & typed responses
+│   ├── model_loader.py                # Sub-15ms champion model singleton loader
+│   ├── explainability.py              # SHAP TreeExplainer engine
+│   ├── metrics.py                     # Prometheus exporter metrics (counters, histograms, gauges)
 │   ├── cloudwatch_logger.py           # Structured CloudWatch logging
-│   └── ui.py                          # 1-Click interactive Streamlit UI
-├── config/config.yaml                 # Centralized configuration & thresholds
+│   └── ui.py                          # Fallback interface
+├── payguard-transaction-risk-assessment-v2/ # Modern React 19 + TypeScript + Tailwind Fintech Console
+│   ├── src/                           # 7 view modules, DashboardContext, and apiClient
+│   └── dist/                          # Pre-compiled static assets served directly at / and /ui
+├── config/config.yaml                 # Centralized configuration & SLA thresholds
 ├── data/                              # Versioned data directories (tracked via DVC)
+│   ├── raw/                           # 15,000 baseline (v1) & 5,000 drifted (v2) datasets
+│   └── reference/                     # 3,000-row baseline reference dataset
 ├── docker/
 │   ├── Dockerfile                     # Production container image
-│   ├── docker-compose.yml             # API + Prometheus + Grafana + MLflow
+│   ├── docker-compose.yml             # API + Prometheus + Grafana + Airflow + MLflow
 │   └── prometheus.yml                 # Prometheus scrape target
 ├── grafana/                           # Pre-provisioned Grafana monitoring dashboards
-├── models/                            # Serialized champion model & metadata
+├── models/                            # Serialized champion model, preprocessor & metadata.json
 ├── reports/
 │   ├── DATA_CARD.md                   # Data provenance, distributions & ethics
 │   ├── MODEL_CARD.md                  # Model architecture, metrics & fairness
@@ -227,9 +219,8 @@ PayGuard/
 │   ├── evaluate.py                    # PR-AUC, Confusion Matrix, Cost Matrix
 │   ├── register.py                    # MLflow Model Registry promotion gate
 │   └── drift.py                       # KS-test & PSI drift algorithms
-├── tests/                             # Pytest test suite
-├── api_spec.json                      # Exported OpenAPI specification
-├── AI_STUDIO_UI_GUIDE.md              # Google AI Studio prompt & integration guide
+├── tests/                             # 22-test automated Pytest suite
+├── MID_SEM_REVIEW_GUIDE.md            # Comprehensive end-to-end review guide
 ├── DEMO_SCRIPT.md                     # 5-minute timed viva demo presentation
 ├── VIVA_PREPARATION.md                # Comprehensive viva questions & answers
 └── requirements.txt                   # Locked dependencies

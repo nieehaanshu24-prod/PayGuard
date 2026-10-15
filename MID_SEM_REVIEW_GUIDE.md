@@ -131,7 +131,7 @@ The UI is built as an enterprise fintech console (PayGuard v2, built with React 
 | **Prometheus** | Time-series database that scrapes operational metrics (requests/sec, p95 latency, fraud distribution) from `/metrics`. | `http://localhost:9090` |
 | **Grafana** | Observability dashboard visualizing Prometheus metrics and drift alerts. | `http://localhost:3000` |
 | **Docker & Docker Compose**| Containerizes all 5 services (`api`, `airflow`, `mlflow`, `prometheus`, `grafana`) into isolated containers. | Run `docker ps` |
-| **GitHub Actions** | Automated CI/CD pipeline that runs 13 unit tests, checks quality gates, and builds the Docker image on every Git push. | GitHub "Actions" tab |
+| **GitHub Actions** | Automated CI/CD pipeline that runs 22 unit & integration tests, checks quality gates, and builds the Docker image on every Git push. | GitHub "Actions" tab |
 | **AWS (S3, SageMaker, CloudWatch)**| Cloud extension scripts for remote artifact storage, SageMaker training/endpoints, and structured logging. | `scripts/` folder |
 
 ---
@@ -301,7 +301,7 @@ Follow this exact walkthrough during your review:
 **Answer**: *"Containerized via Docker Compose running 5 services: FastAPI (port 8000), Airflow (port 8080), MLflow (port 5000), Prometheus (port 9090), and Grafana (port 3000)."*
 
 #### Q13: "What CI/CD automation do you have?"
-**Answer**: *"GitHub Actions runs on every push: installing dependencies, running 13 Pytest tests, verifying model quality gates, running latency benchmarks, simulating drift, and performing a Docker build & healthcheck test."*
+**Answer**: *"GitHub Actions runs on every push: installing dependencies, running 22 Pytest unit & integration tests, verifying model quality gates, running latency benchmarks, simulating drift, and performing a Docker build & healthcheck test."*
 
 #### Q14: "Why are you using AWS in dry-run mode?"
 **Answer**: *"To preserve our \$200 signup credits. SageMaker endpoints cost ~\$195/month. Our Boto3 scripts for S3, SageMaker, and CloudWatch are fully written and validated in dry-run mode; we will launch them live for the final end-sem viva."*

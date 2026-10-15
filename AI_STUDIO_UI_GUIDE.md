@@ -26,10 +26,15 @@ Base URL: `http://localhost:8000` (or your deployed server IP)
 Full OpenAPI Spec: Generated in [`api_spec.json`](./api_spec.json).
 
 ### Key Endpoints:
-1. `POST /predict`: Real-time transaction scoring.
+1. `POST /predict`: Real-time transaction scoring with sub-12ms latency.
 2. `POST /explain`: SHAP-based feature attribution explanation.
-3. `POST /feedback`: Delayed ground truth reporting (True Positive / False Positive tracking).
-4. `POST /drift/simulate`: Production data drift trigger.
+3. `POST /predict/batch`: Concurrent multi-transaction batch evaluation.
+4. `POST /feedback`: Delayed ground truth reporting (True Positive / False Positive tracking).
+5. `POST /drift/simulate`: Production data drift analysis (KS-test & PSI).
+6. `GET /model/metadata`: Live champion model metadata, MLflow run ID, metrics, and savings.
+7. `GET /model/feature-importance`: Real Random Forest Gini feature importances.
+8. `GET /transactions/sample`: Scored transactions sampled from the 15,000-row DVC dataset.
+9. `GET /transactions/stream-next`: Real-time streaming transaction feed.
 
 ---
 
@@ -46,9 +51,9 @@ When an analyst provides a transaction scenario:
    - Endpoint: POST http://localhost:8000/predict
    - Endpoint: POST http://localhost:8000/explain
 2. Present the result clearly with:
-   - VERDICT: [LEGITIMATE | SUSPICIOUS | CRITICAL FRAUD]
+   - VERDICT: [APPROVED | REVIEW | BLOCKED]
    - FRAUD PROBABILITY: (e.g. 96.4%)
-   - ACTION RECOMMENDATION: [APPROVE | CHALLENGE OTP | BLOCK CARD]
+   - ACTION RECOMMENDATION: [APPROVE | STEP_UP_AUTHENTICATION | BLOCK_TRANSACTION]
    - TOP DRIVING FACTORS (from SHAP values):
      * Highlight why the transaction was flagged (e.g., velocity surge, unfamiliar midnight hour, low device trust).
    - SUGGESTED NEXT STEPS: What action the bank customer agent should take.
@@ -77,7 +82,7 @@ When an analyst provides a transaction scenario:
   "velocity_24h": 1
 }
 ```
-**Expected Output**: Risk: `LOW`, Verdict: `APPROVE`, Latency: `< 15ms`.
+**Expected Output**: Risk: `LOW`, Verdict: `APPROVED`, Latency: `< 15ms`.
 
 ---
 
@@ -104,10 +109,15 @@ When an analyst provides a transaction scenario:
 
 ---
 
-## 5. (Bonus) Instant Local Fallback UI
+## 5. PayGuard Web Interfaces
 
-If you want a 1-click visual dashboard for your viva demo, run:
-```bash
-streamlit run app/ui.py
-```
-This launches a web dashboard connected to `http://localhost:8000`.
+1. **PayGuard v2 Enterprise Fintech Risk Console (Primary)**:
+   - Access directly at **`http://localhost:8000/ui`** (or `http://localhost:8000/`).
+   - Built with React 19, TypeScript, and Tailwind CSS.
+   - Features 7 live views: Executive Overview, Real-Time Streaming Ticker, Transaction Analysis Sandbox, TreeSHAP Explainability, Drift Monitoring, Model Performance (MLflow metrics & $23k savings), and System Health.
+2. **Interactive Swagger / OpenAPI Spec**:
+   - Access at **`http://localhost:8000/docs`**.
+3. **Streamlit Fallback Console**:
+   ```bash
+   streamlit run app/ui.py
+   ```
